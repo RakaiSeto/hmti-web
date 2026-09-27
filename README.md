@@ -3,14 +3,20 @@
 Website and design system for **HMTI Polinema** — Himpunan Mahasiswa
 **Teknologi Informasi**, Jurusan Teknologi Informasi, Politeknik Negeri Malang.
 
-> **Status: research complete, design system not started.** No application code yet.
-> Read [`docs/research/00-synthesis-and-design-inputs.md`](docs/research/00-synthesis-and-design-inputs.md) first.
+> **Status: research complete, design system v0.1 drafted (proposal).** No application code yet.
+> Start with [`design-system/index.html`](design-system/index.html) to see it, and
+> [`docs/research/00-synthesis-and-design-inputs.md`](docs/research/00-synthesis-and-design-inputs.md)
+> for the decisions still needing sign-off.
 
 ## Repository layout
 
 ```
+design-system/   The design system
+  ├── index.html    ← open this in a browser: full visual spec, self-contained
+  ├── tokens.css    drop-in CSS custom properties (light + dark)
+  └── tokens.json   same tokens as data, with per-value provenance
 docs/research/   Brand + design research (cited, evidence-first)
-  ├── 00-synthesis-and-design-inputs.md   ← start here
+  ├── 00-synthesis-and-design-inputs.md   ← the decisions the system must resolve
   ├── 01-hmti-polinema-brand-research.md  logo, colour, type, live site tokens
   ├── 02-social-presence.md               channels, vocabulary, campaign themes
   ├── 03-institutional-brand.md           Polinema + JTI parent-brand constraints
@@ -18,6 +24,20 @@ docs/research/   Brand + design research (cited, evidence-first)
 assets/brand/    Canonical brand assets (logos, photos, reference files)
 research-shots/ Screenshots and contact sheets captured during research
 ```
+
+## Using the tokens
+
+```html
+<link rel="stylesheet" href="design-system/tokens.css">
+```
+
+```css
+.button-primary { background: var(--brand); color: var(--brand-ink); }
+.link           { color: var(--accent); }   /* swaps automatically in dark mode */
+```
+
+Toggle dark mode with `<html data-theme="dark">`. The accent token is the important one — it
+swaps from `#041587` to `#698FE6` because the light-mode blue is unreadable on `#0A0A0A`.
 
 ## Brand quick reference
 
