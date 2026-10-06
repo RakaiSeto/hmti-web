@@ -3,7 +3,7 @@
 Website and design system for **HMTI Polinema** — Himpunan Mahasiswa
 **Teknologi Informasi**, Jurusan Teknologi Informasi, Politeknik Negeri Malang.
 
-> **Status: research complete, design system v0.1 drafted (proposal).** No application code yet.
+> **Status: research complete, design system v0.2 drafted (proposal).** No application code yet.
 > Start with [`design-system/index.html`](design-system/index.html) to see it, and
 > [`docs/research/00-synthesis-and-design-inputs.md`](docs/research/00-synthesis-and-design-inputs.md)
 > for the decisions still needing sign-off.
@@ -14,13 +14,17 @@ Website and design system for **HMTI Polinema** — Himpunan Mahasiswa
 design-system/   The design system
   ├── index.html    ← open this in a browser: full visual spec, self-contained
   ├── tokens.css    drop-in CSS custom properties (light + dark)
+  ├── app.css       v0.2 app kit: shell, data table, status map, overlays, printable doc
   └── tokens.json   same tokens as data, with per-value provenance
+docs/app-design-plan.md  Inventory + borrowing app: scope, roles, flows, page inventory, decisions
 docs/research/   Brand + design research (cited, evidence-first)
   ├── 00-synthesis-and-design-inputs.md   ← the decisions the system must resolve
   ├── 01-hmti-polinema-brand-research.md  logo, colour, type, live site tokens
   ├── 02-social-presence.md               channels, vocabulary, campaign themes
   ├── 03-institutional-brand.md           Polinema + JTI parent-brand constraints
+  ├── 04-design-editor-options-agent-driven.md   Figma alternatives an agent can drive (bb on Fedora)
   └── sources/                            primary documents (Statuta PDF, etc.)
+docs/openpencil-setup.md  Design tooling: OpenPencil install, CLI/MCP workflow, bb wiring
 assets/brand/    Canonical brand assets (logos, photos, reference files)
 research-shots/ Screenshots and contact sheets captured during research
 ```
@@ -38,6 +42,21 @@ research-shots/ Screenshots and contact sheets captured during research
 
 Toggle dark mode with `<html data-theme="dark">`. The accent token is the important one — it
 swaps from `#041587` to `#698FE6` because the light-mode blue is unreadable on `#0A0A0A`.
+
+## Using the app kit (v0.2)
+
+For the inventory + borrowing app, load `app.css` after `tokens.css`:
+
+```html
+<link rel="stylesheet" href="design-system/tokens.css">
+<link rel="stylesheet" href="design-system/app.css">
+```
+
+It adds the app shell (`.app`), data table (`table.data`), the fixed status badges (`.st-*`),
+stepper/timeline, empty/skeleton states, overlays (dialog, drawer, dropdown, tooltip, toast),
+form extras (date range, combobox, upload, qty) and the printable `.doc` berita acara. The
+same components are demonstrated (and the CSS is inlined) in `index.html` §18. The app's scope,
+flows and page inventory live in [`../docs/app-design-plan.md`](../docs/app-design-plan.md).
 
 ## Brand quick reference
 

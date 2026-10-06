@@ -366,6 +366,284 @@ label.f{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
 .layer.c .n{background:var(--tertiary);color:#fff}
 .layer h4{font-size:15px;font-weight:700;margin-bottom:3px}
 .layer p{font-size:13px;color:var(--text-muted)}
+
+/* ============================================================
+   APP KIT v0.2 — inlined from design-system/app.css so this
+   showcase stays self-contained. Keep the two in sync.
+   ============================================================ */
+/* ============================================================================
+   HMTI Polinema — Design System · App kit  v0.2
+   ----------------------------------------------------------------------------
+   The application family: shell, data display, overlays, form extras and the
+   printable berita acara. Load AFTER tokens.css — this file only references
+   semantic tokens, never raw hex.
+
+   <link rel="stylesheet" href="design-system/tokens.css">
+   <link rel="stylesheet" href="design-system/app.css">
+
+   Scope: inventory + borrowing/approval app. UI language: Bahasa Indonesia.
+   Light-first; every component also resolves under [data-theme="dark"].
+   ========================================================================== */
+
+/* ---------------------------------------------------------------- app shell */
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:620px;
+  border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:var(--bg)}
+.app-side{background:var(--surface);border-right:1px solid var(--border);
+  padding:18px 14px;display:flex;flex-direction:column;gap:4px}
+.app-brand{display:flex;align-items:center;gap:10px;padding:4px 8px 16px;font-weight:700;font-size:14px}
+.app-brand .mark{width:32px;height:32px;flex:none;border-radius:var(--r-full);background:var(--brand);
+  color:var(--brand-ink);display:grid;place-items:center;font-size:12px;font-weight:800}
+.app-brand .sub{display:block;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text-muted)}
+.app-nav-grp{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-subtle);margin:14px 8px 6px}
+.app-nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-md);
+  font-size:13.5px;font-weight:600;color:var(--text-muted);text-decoration:none;
+  transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
+.app-nav a:hover{background:var(--surface-2);color:var(--text)}
+.app-nav a[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
+.app-nav a .ic{width:17px;flex:none;text-align:center;opacity:.9}
+.app-nav a .pill{margin-left:auto;background:var(--brand);color:var(--brand-ink);
+  border-radius:var(--r-full);font-size:10.5px;font-weight:800;padding:1px 7px}
+.app-side .side-foot{margin-top:auto;padding:12px 8px 2px;border-top:1px solid var(--border);
+  font-size:11.5px;color:var(--text-muted)}
+.app-content{display:flex;flex-direction:column;min-width:0}
+.app-topbar{display:flex;align-items:center;gap:14px;padding:12px 20px;
+  border-bottom:1px solid var(--border);background:var(--surface)}
+.breadcrumb{display:flex;align-items:center;gap:8px;flex:1;min-width:0;font-size:13px;
+  color:var(--text-muted);overflow:hidden;white-space:nowrap}
+.breadcrumb a{color:var(--text-muted);text-decoration:none}
+.breadcrumb a:hover{color:var(--text)}
+.breadcrumb .sep{opacity:.45}
+.breadcrumb [aria-current]{color:var(--text);font-weight:600}
+.search{position:relative;flex:none;width:220px}
+.search .ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  color:var(--text-subtle);font-size:14px;pointer-events:none}
+.search .input{padding-left:32px}
+.avatar{width:34px;height:34px;flex:none;border-radius:var(--r-full);background:var(--accent);
+  color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:13px}
+.app-body{padding:24px;display:flex;flex-direction:column;gap:20px;flex:1}
+.page-head{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.page-head h3{font-size:22px;font-weight:700}
+.page-head .lede{color:var(--text-muted);font-size:14px;margin-top:4px;max-width:70ch}
+.page-head .actions{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+@media(max-width:820px){
+  .app{grid-template-columns:1fr}
+  .app-side{flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--border)}
+  .app-side .app-nav-grp,.app-side .side-foot{display:none}
+  .search{display:none}
+}
+
+/* ------------------------------------------------------------- data toolbar */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.toolbar .spacer{flex:1}
+.seg{display:inline-flex;gap:2px;padding:3px;background:var(--surface-2);border-radius:var(--r-md)}
+.seg button{font:inherit;font-size:12.5px;font-weight:600;padding:6px 12px;border:0;
+  border-radius:var(--r-sm);background:transparent;color:var(--text-muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:var(--shadow-xs)}
+
+/* --------------------------------------------------------------- data table */
+.table-wrap{border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;
+  background:var(--surface)}
+table.data{width:100%;border-collapse:collapse;font-size:13.5px}
+table.data th{text-align:left;font-weight:700;font-size:10.5px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--text-subtle);padding:11px 16px;background:var(--surface-2);
+  border-bottom:1px solid var(--border);white-space:nowrap}
+table.data th.sortable{cursor:pointer;user-select:none}
+table.data th.sortable:hover{color:var(--text-muted)}
+table.data th .sort{opacity:.4;font-size:9px;margin-left:3px}
+table.data td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.data tbody tr:last-child td{border-bottom:0}
+table.data tbody tr:hover{background:var(--surface-2)}
+table.data tr[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+table.data input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent)}
+table.data .num{font-family:var(--font-mono);font-size:12.5px;white-space:nowrap}
+table.data .primary{font-weight:600;color:var(--text)}
+table.data .muted{color:var(--text-muted);font-size:12.5px}
+table.data .actions-cell{text-align:right;white-space:nowrap}
+.pagination{display:flex;align-items:center;gap:6px;padding:12px 16px;
+  border-top:1px solid var(--border);font-size:12.5px;color:var(--text-muted)}
+.pagination .spacer{flex:1}
+.page-btn{min-width:32px;height:32px;padding:0 8px;border:1px solid var(--border);
+  background:var(--surface);border-radius:var(--r-sm);font:inherit;font-size:12.5px;
+  font-weight:600;color:var(--text-muted);cursor:pointer}
+.page-btn:hover{background:var(--surface-2)}
+.page-btn[aria-current="page"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+/* ------------------------------------------------------------ status badges */
+.st{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:var(--r-full);
+  font-size:11.5px;font-weight:700;letter-spacing:.03em;border:1px solid transparent;white-space:nowrap}
+.st::before{content:"";width:6px;height:6px;border-radius:var(--r-full);background:currentColor}
+.st-draft{background:var(--surface-2);color:var(--text-muted);border-color:var(--border)}
+.st-submitted{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+.st-approved{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.st-partial{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.st-rejected{background:var(--danger-bg);color:var(--danger);border-color:var(--danger)}
+.st-borrowed{background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);
+  border-color:var(--accent)}
+.st-returned{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.st-overdue{background:var(--danger-bg);color:var(--danger);border-color:var(--danger)}
+.st-lost{background:var(--danger-bg);color:var(--danger);border-color:var(--danger)}
+.st-damaged{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.st-available{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.st-out{background:var(--surface-2);color:var(--text-muted);border-color:var(--border)}
+
+/* ------------------------------------------------------- timeline & stepper */
+.stepper{display:flex;flex-wrap:wrap}
+.step{flex:1;min-width:132px;position:relative;padding-top:32px}
+.step::before{content:"";position:absolute;top:11px;left:0;right:0;height:2px;background:var(--border)}
+.step:first-child::before{left:50%}
+.step:last-child::before{right:50%}
+.step .dot{position:absolute;top:4px;left:50%;transform:translateX(-50%);width:16px;height:16px;
+  border-radius:var(--r-full);background:var(--surface);border:2px solid var(--border-strong);z-index:1}
+.step.done .dot{background:var(--ok);border-color:var(--ok)}
+.step.current .dot{background:var(--accent);border-color:var(--accent);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 20%,transparent)}
+.step.fail .dot{background:var(--danger);border-color:var(--danger)}
+.step .lbl{text-align:center;font-size:12px;font-weight:600;color:var(--text-muted)}
+.step.done .lbl,.step.current .lbl{color:var(--text)}
+.step .when{text-align:center;font-size:11px;color:var(--text-subtle);margin-top:2px}
+
+.timeline{list-style:none;margin:0;padding:0}
+.timeline li{position:relative;padding:0 0 22px 30px}
+.timeline li::before{content:"";position:absolute;left:6px;top:6px;bottom:-6px;width:2px;
+  background:var(--border)}
+.timeline li:last-child{padding-bottom:0}
+.timeline li:last-child::before{display:none}
+.timeline .tdot{position:absolute;left:0;top:5px;width:14px;height:14px;border-radius:var(--r-full);
+  background:var(--surface);border:2px solid var(--border-strong)}
+.timeline li.done .tdot{background:var(--ok);border-color:var(--ok)}
+.timeline li.current .tdot{background:var(--accent);border-color:var(--accent)}
+.timeline li.fail .tdot{background:var(--danger);border-color:var(--danger)}
+.timeline .tt{font-size:13.5px;font-weight:600}
+.timeline .tm{font-size:11.5px;color:var(--text-subtle)}
+.timeline .tb{font-size:13px;color:var(--text-muted);margin-top:3px}
+
+/* ---------------------------------------------------- empty, loading states */
+.empty{border:1.5px dashed var(--border-strong);border-radius:var(--r-lg);background:var(--surface);
+  padding:44px 24px;text-align:center}
+.empty .ic{width:52px;height:52px;margin:0 auto 14px;border-radius:var(--r-full);
+  background:var(--surface-2);display:grid;place-items:center;font-size:22px;color:var(--text-subtle)}
+.empty h4{font-size:16px;font-weight:700;margin-bottom:6px}
+.empty p{font-size:13.5px;color:var(--text-muted);max-width:46ch;margin:0 auto 16px}
+.skel{background:linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 37%,var(--surface-2) 63%);
+  background-size:400% 100%;animation:skel 1.4s ease infinite;border-radius:var(--r-sm)}
+.skel.line{height:12px;margin-bottom:10px}
+.skel.line.w40{width:40%} .skel.line.w70{width:70%} .skel.line.w55{width:55%}
+@keyframes skel{0%{background-position:100% 50%}100%{background-position:0 50%}}
+@media(prefers-reduced-motion:reduce){.skel{animation:none}}
+
+/* ----------------------------------------------------------- form additions */
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+.field .row-inline{display:flex;gap:10px;align-items:flex-start}
+.combobox{position:relative}
+.combobox .menu{position:absolute;z-index:5;top:calc(100% + 6px);left:0;right:0;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);
+  box-shadow:var(--shadow-md);padding:6px;max-height:210px;overflow:auto}
+.combobox .menu button{display:flex;width:100%;justify-content:space-between;gap:12px;
+  font:inherit;font-size:13.5px;text-align:left;background:transparent;border:0;
+  border-radius:var(--r-sm);padding:8px 10px;cursor:pointer;color:var(--text)}
+.combobox .menu button:hover,.combobox .menu button[aria-selected="true"]{background:var(--surface-2)}
+.combobox .menu .hint{color:var(--text-subtle);font-size:11.5px}
+.upload{border:1.5px dashed var(--border-strong);border-radius:var(--r-lg);background:var(--surface);
+  padding:26px;text-align:center}
+.upload .ic{font-size:26px;color:var(--text-subtle)}
+.upload p{font-size:13.5px;color:var(--text-muted);margin-top:6px}
+.upload .btn{margin-top:12px}
+.upload-list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+.upload-list li{display:flex;align-items:center;gap:12px;border:1px solid var(--border);
+  border-radius:var(--r-md);padding:9px 12px;font-size:13px;background:var(--surface)}
+.upload-list .nm{flex:none;font-weight:600}
+.upload-list .bar{height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden;flex:1}
+.upload-list .bar span{display:block;height:100%;background:var(--ok)}
+.upload-list .ok{color:var(--ok);font-weight:700;font-size:12px}
+.qty{display:inline-flex;align-items:center;border:1px solid var(--border-strong);
+  border-radius:var(--r-md);overflow:hidden;background:var(--surface)}
+.qty button{width:34px;height:34px;border:0;background:transparent;font:inherit;font-size:16px;
+  font-weight:700;color:var(--text);cursor:pointer}
+.qty button:hover{background:var(--surface-2)}
+.qty input{width:54px;height:34px;border:0;border-left:1px solid var(--border);
+  border-right:1px solid var(--border);text-align:center;font:inherit;font-size:14px;
+  font-weight:600;color:var(--text);background:var(--surface)}
+.daterange{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.daterange .input{width:auto;flex:1;min-width:150px}
+.daterange .sep{color:var(--text-subtle)}
+.daterange .dur{font-size:12px;color:var(--text-muted);white-space:nowrap}
+
+/* ---------------------------------------------------------------- overlays */
+.overlay-demo{position:relative;border:1px solid var(--border);border-radius:var(--r-lg);
+  min-height:300px;background:var(--surface-2);overflow:hidden;display:flex}
+.overlay-demo .scrim{position:absolute;inset:0;background:rgb(10 10 10/.42)}
+.dialog{position:relative;width:min(460px,100%);margin:auto;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--shadow-lg);padding:24px}
+.dialog .dlg-ic{width:40px;height:40px;border-radius:var(--r-full);display:grid;place-items:center;
+  font-size:18px;margin-bottom:14px;background:var(--danger-bg);color:var(--danger)}
+.dialog h4{font-size:17px;font-weight:700;margin-bottom:8px}
+.dialog p{font-size:14px;color:var(--text-muted)}
+.dialog .dlg-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+.drawer{position:relative;width:min(400px,100%);margin-left:auto;background:var(--surface);
+  border-left:1px solid var(--border);box-shadow:var(--shadow-lg);padding:24px;display:flex;
+  flex-direction:column;gap:14px}
+.drawer h4{font-size:17px;font-weight:700}
+.drawer .drawer-foot{margin-top:auto;display:flex;gap:10px;justify-content:flex-end}
+.dropdown{min-width:208px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-md);box-shadow:var(--shadow-md);padding:6px}
+.dropdown button{display:flex;width:100%;align-items:center;gap:10px;text-align:left;font:inherit;
+  font-size:13.5px;font-weight:500;color:var(--text);background:transparent;border:0;
+  border-radius:var(--r-sm);padding:9px 10px;cursor:pointer}
+.dropdown button:hover{background:var(--surface-2)}
+.dropdown button.danger{color:var(--danger)}
+.dropdown hr{border:0;border-top:1px solid var(--border);margin:6px 4px}
+.tooltip{position:relative;display:inline-flex}
+.tooltip .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:var(--neutral-950);color:var(--neutral-50);font-size:12px;font-weight:600;
+  padding:6px 10px;border-radius:var(--r-sm);white-space:nowrap;box-shadow:var(--shadow-md)}
+.tooltip .tip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:5px solid transparent;border-top-color:var(--neutral-950)}
+.toast-stack{display:grid;gap:10px;max-width:360px}
+.toast{display:flex;gap:12px;align-items:flex-start;background:var(--surface);
+  border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-md);
+  box-shadow:var(--shadow-md);padding:13px 15px;font-size:13.5px}
+.toast.ok{border-left-color:var(--ok)}
+.toast.warn{border-left-color:var(--warn)}
+.toast.danger{border-left-color:var(--danger)}
+.toast .tt{font-weight:700;font-size:13px;margin-bottom:2px}
+.toast .tm{color:var(--text-muted)}
+.toast .x{margin-left:auto;color:var(--text-subtle);cursor:pointer;line-height:1}
+
+/* -------------------------------------------------------- printable document */
+.doc{background:#fff;color:#111;border:1px solid var(--border);border-radius:var(--r-lg);
+  max-width:760px;margin:0 auto;padding:40px 44px;font-size:13px;line-height:1.6}
+.doc .doc-head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #111;
+  padding-bottom:14px;margin-bottom:18px}
+.doc .doc-head .mark{width:52px;height:52px;flex:none;border-radius:var(--r-full);background:var(--brand);
+  color:var(--brand-ink);display:grid;place-items:center;font-weight:800;font-size:13px}
+.doc h3{font-size:16px;text-transform:uppercase;letter-spacing:.04em;margin:0}
+.doc .org{font-size:11.5px;color:#555}
+.doc h4.title{text-align:center;text-transform:uppercase;letter-spacing:.09em;margin:24px 0 3px;
+  font-size:15px}
+.doc .docno{text-align:center;font-size:12px;color:#555;margin-bottom:18px}
+.doc .meta-row{display:flex;gap:8px;font-size:12.5px;margin:3px 0}
+.doc .meta-row b{min-width:150px;display:inline-block;flex:none}
+.doc table{width:100%;border-collapse:collapse;margin:14px 0}
+.doc th,.doc td{border:1px solid #999;padding:7px 9px;text-align:left;font-size:12.5px}
+.doc th{background:#f3f3f3;font-weight:700}
+.doc .note{font-size:12px;color:#444;margin-top:10px}
+.doc .signs{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:38px;text-align:center;
+  font-size:12px}
+.doc .signs .line{margin-top:58px;border-top:1px solid #999;padding-top:5px}
+.doc .stamp{margin-top:24px;font-size:11.5px;color:#666}
+
+@media print{
+  body{background:#fff}
+  .topbar,nav.side,.no-print,.sec-head+.sec-lede{display:none!important}
+  .shell{display:block}
+  main{padding:0}
+  .stage,.tint,.stage.tint{background:#fff;border:0;padding:0}
+  .doc{border:0;border-radius:0;max-width:none;padding:0;box-shadow:none}
+  section{margin:0}
+}
 </style>
 </head>
 <body>
@@ -374,7 +652,7 @@ label.f{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
   <img class="tb-logo" src="data:image/webp;base64,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" alt="HMTI Polinema">
   <div>
     <div class="tb-name">HMTI POLINEMA</div>
-    <div class="tb-sub">Design System v0.1</div>
+    <div class="tb-sub">Design System v0.2</div>
   </div>
   <div class="spacer"></div>
   <button class="tbtn" id="themeBtn" type="button">◐ Dark mode</button>
@@ -402,6 +680,8 @@ label.f{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
   <a href="#article">Article card</a>
   <a href="#data">Stats &amp; tabs</a>
   <a href="#footer">Footer</a>
+  <div class="grp">App kit · v0.2</div>
+  <a href="#appkit">App kit</a>
   <div class="grp">Guidance</div>
   <a href="#voice">Voice &amp; tone</a>
   <a href="#decisions">Open decisions</a>
@@ -1222,9 +1502,434 @@ label.f{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
   </div>
 </section>
 
+<!-- ============ APP KIT ============ -->
+<section id="appkit">
+  <div class="sec-head"><span class="sec-num">18</span><h2 class="sec">App kit <span class="badge badge-accent" style="vertical-align:middle">v0.2</span></h2></div>
+  <p class="sec-lede">The application family for the inventory + borrowing app. Same tokens, a new
+    set of components: shell, data table, status map, timeline, overlays, form extras and the
+    printable <i>berita acara</i>. UI language is Bahasa Indonesia; light-first, dark-resolved.
+    Links to the public catalogue and request flow stay unauthenticated, so these components are
+    used by admins and by the tracking page.</p>
+
+  <h3 class="sub">18.1 · App shell</h3>
+  <p class="sub-note">Sidebar (240 px) + topbar with breadcrumb, global search and account menu.
+    The sidebar collapses to a horizontal strip under 820 px. Active item uses the accent fill;
+    the yellow brand stays reserved for status and primary action.</p>
+  <div class="app">
+    <aside class="app-side">
+      <div class="app-brand">
+        <span class="mark">HM</span>
+        <span>HMTI Polinema<span class="sub">Inventaris</span></span>
+      </div>
+      <div class="app-nav-grp">Utama</div>
+      <nav class="app-nav">
+        <a href="#appkit" aria-current="page"><span class="ic">▦</span> Dasbor</a>
+        <a href="#appkit"><span class="ic">✉</span> Permintaan <span class="pill">3</span></a>
+        <a href="#appkit"><span class="ic">⇄</span> Serah terima</a>
+        <a href="#appkit"><span class="ic">↩</span> Pengembalian</a>
+      </nav>
+      <div class="app-nav-grp">Master data</div>
+      <nav class="app-nav">
+        <a href="#appkit"><span class="ic">▤</span> Barang</a>
+        <a href="#appkit"><span class="ic">◫</span> Kategori</a>
+        <a href="#appkit"><span class="ic">⌖</span> Lokasi</a>
+      </nav>
+      <div class="app-nav-grp">Sistem</div>
+      <nav class="app-nav">
+        <a href="#appkit"><span class="ic">☺</span> Pengguna</a>
+        <a href="#appkit"><span class="ic">⚙</span> Pengaturan</a>
+      </nav>
+      <div class="side-foot">Masuk sebagai<br><b>Admin Inventaris</b></div>
+    </aside>
+    <div class="app-content">
+      <div class="app-topbar">
+        <div class="breadcrumb">
+          <a href="#appkit">Dasbor</a><span class="sep">/</span>
+          <span aria-current="page">Permintaan</span>
+        </div>
+        <div class="search"><span class="ic">⌕</span>
+          <input class="input" placeholder="Cari permintaan atau barang…" aria-label="Cari"></div>
+        <button class="tbtn" type="button" aria-label="Notifikasi">🔔</button>
+        <span class="avatar" title="Admin Inventaris">AI</span>
+      </div>
+      <div class="app-body">
+        <div class="page-head">
+          <div>
+            <h3>Dasbor</h3>
+            <div class="lede">Ringkasan inventaris dan permintaan peminjaman.</div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-secondary">Ekspor CSV</button>
+            <button class="btn btn-primary">Tambah barang</button>
+          </div>
+        </div>
+        <div class="grid3">
+          <div class="stat"><div class="v">248</div><div class="k">Total barang</div></div>
+          <div class="stat"><div class="v accent">17</div><div class="k">Sedang dipinjam</div></div>
+          <div class="stat"><div class="v">3</div><div class="k">Menunggu persetujuan</div></div>
+          <div class="stat"><div class="v" style="color:var(--danger)">2</div><div class="k">Terlambat</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <h3 class="sub">18.2 · Data table</h3>
+  <p class="sub-note">Sortable headers, row selection, a filter toolbar and pagination. Row height
+    is 12 px vertical padding; the first column is the selection target. Numeric and code cells
+    use the mono face.</p>
+  <div class="toolbar" style="margin-bottom:12px">
+    <div class="seg" role="group" aria-label="Filter status">
+      <button aria-pressed="true">Semua</button>
+      <button aria-pressed="false">Diajukan</button>
+      <button aria-pressed="false">Disetujui</button>
+      <button aria-pressed="false">Terlambat</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="search" style="width:240px"><span class="ic">⌕</span>
+      <input class="input" placeholder="Cari kode / peminjam…" aria-label="Cari permintaan"></div>
+    <button class="btn btn-outline btn-sm">Filter</button>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th style="width:38px"><input type="checkbox" aria-label="Pilih semua"></th>
+          <th class="sortable">Kode <span class="sort">▲</span></th>
+          <th>Peminjam</th>
+          <th>Barang</th>
+          <th>Periode</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr aria-selected="true">
+          <td><input type="checkbox" checked aria-label="Pilih PRM-2026-0042"></td>
+          <td class="num">PRM-2026-0042</td>
+          <td><span class="primary">BEM Polinema</span><br><span class="muted">Rangga · 0812-3456-7890</span></td>
+          <td>Proyektor ×2<br><span class="muted">Sound system ×1</span></td>
+          <td class="num">12–14 Okt 2026</td>
+          <td><span class="st st-submitted">Diajukan</span></td>
+          <td class="actions-cell"><button class="btn btn-ghost btn-sm">Tinjau</button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" aria-label="Pilih PRM-2026-0041"></td>
+          <td class="num">PRM-2026-0041</td>
+          <td><span class="primary">HIMATIF UB</span><br><span class="muted">Sari · 0813-2211-0001</span></td>
+          <td>Kamera Canon ×1<br><span class="muted">Tripod ×1</span></td>
+          <td class="num">08–09 Okt 2026</td>
+          <td><span class="st st-approved">Disetujui</span></td>
+          <td class="actions-cell"><button class="btn btn-ghost btn-sm">Detail</button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" aria-label="Pilih PRM-2026-0040"></td>
+          <td class="num">PRM-2026-0040</td>
+          <td><span class="primary">Dept. Elektro</span><br><span class="muted">Yusuf · 0857-9999-1234</span></td>
+          <td>Meja lipat ×6<br><span class="muted">Kursi ×20 · Tenda ×2</span></td>
+          <td class="num">05–06 Okt 2026</td>
+          <td><span class="st st-partial">Disetujui sebagian</span></td>
+          <td class="actions-cell"><button class="btn btn-ghost btn-sm">Detail</button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" aria-label="Pilih PRM-2026-0039"></td>
+          <td class="num">PRM-2026-0039</td>
+          <td><span class="primary">PKKMB JTI</span><br><span class="muted">Dita · 0811-4567-8899</span></td>
+          <td>Toa ×2<br><span class="muted">Lampu sorot ×4</span></td>
+          <td class="num">28 Sep – 01 Okt 2026</td>
+          <td><span class="st st-overdue">Terlambat</span></td>
+          <td class="actions-cell"><button class="btn btn-ghost btn-sm">Detail</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="pagination">
+      <span>Menampilkan 4 dari 42 permintaan</span>
+      <span class="spacer"></span>
+      <button class="page-btn" aria-label="Sebelumnya">‹</button>
+      <button class="page-btn" aria-current="page">1</button>
+      <button class="page-btn">2</button>
+      <button class="page-btn">3</button>
+      <button class="page-btn" aria-label="Berikutnya">›</button>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <h3 class="sub">18.3 · Status map</h3>
+  <p class="sub-note">Every request and item state has one fixed badge. This table is the contract —
+    do not invent a new colour for a state; add a row here first. The dot carries the meaning when
+    the badge is printed in greyscale.</p>
+  <table class="t">
+    <tr><th>State</th><th>Badge</th><th>Label (ID)</th><th>Meaning</th></tr>
+    <tr><td class="num">draft</td><td><span class="st st-draft">Draf</span></td><td>Draf</td>
+      <td>Permintaan dibuat tetapi belum dikirim.</td></tr>
+    <tr><td class="num">submitted</td><td><span class="st st-submitted">Diajukan</span></td><td>Diajukan</td>
+      <td>Menunggu tinjauan admin (satu langkah).</td></tr>
+    <tr><td class="num">approved</td><td><span class="st st-approved">Disetujui</span></td><td>Disetujui</td>
+      <td>Seluruh permintaan disetujui; stok direservasi.</td></tr>
+    <tr><td class="num">partial</td><td><span class="st st-partial">Disetujui sebagian</span></td><td>Disetujui sebagian</td>
+      <td>Sebagian baris/jumlah disetujui, sisanya ditolak.</td></tr>
+    <tr><td class="num">rejected</td><td><span class="st st-rejected">Ditolak</span></td><td>Ditolak</td>
+      <td>Tidak ada baris yang disetujui.</td></tr>
+    <tr><td class="num">borrowed</td><td><span class="st st-borrowed">Dipinjam</span></td><td>Dipinjam</td>
+      <td>Barang sudah diserahkan dan berada di luar.</td></tr>
+    <tr><td class="num">partially_returned</td><td><span class="st st-partial">Dikembalikan sebagian</span></td><td>Dikembalikan sebagian</td>
+      <td>Sebagian barang sudah kembali.</td></tr>
+    <tr><td class="num">returned</td><td><span class="st st-returned">Dikembalikan</span></td><td>Dikembalikan</td>
+      <td>Selesai; stok kembali penuh.</td></tr>
+    <tr><td class="num">overdue</td><td><span class="st st-overdue">Terlambat</span></td><td>Terlambat</td>
+      <td>Melewati tanggal kembali yang disetujui.</td></tr>
+    <tr><td class="num">damaged</td><td><span class="st st-damaged">Rusak</span></td><td>Rusak</td>
+      <td>Kondisi barang rusak saat pengembalian.</td></tr>
+    <tr><td class="num">lost</td><td><span class="st st-lost">Hilang</span></td><td>Hilang</td>
+      <td>Barang tidak dikembalikan; masuk daftar hitam.</td></tr>
+    <tr><td class="num">available</td><td><span class="st st-available">Tersedia</span></td><td>Tersedia</td>
+      <td>Stok dapat dipinjam (katalog publik).</td></tr>
+    <tr><td class="num">out</td><td><span class="st st-out">Dipinjam keluar</span></td><td>Dipinjam keluar</td>
+      <td>Unit sedang dipinjam (status per unit).</td></tr>
+  </table>
+
+  <hr class="rule">
+
+  <h3 class="sub">18.4 · Timeline &amp; stepper</h3>
+  <p class="sub-note">The stepper shows where a request is in the fixed lifecycle; the timeline is
+    the audit trail with who and when. Never colour alone — completed steps also change the label
+    weight and show a timestamp.</p>
+  <div class="stage col">
+    <div class="stepper">
+      <div class="step done"><span class="dot"></span><div class="lbl">Diajukan</div><div class="when">06 Okt, 09:14</div></div>
+      <div class="step done"><span class="dot"></span><div class="lbl">Disetujui</div><div class="when">06 Okt, 13:02</div></div>
+      <div class="step current"><span class="dot"></span><div class="lbl">Serah terima</div><div class="when">hari ini, 08:30</div></div>
+      <div class="step"><span class="dot"></span><div class="lbl">Dipinjam</div><div class="when">—</div></div>
+      <div class="step"><span class="dot"></span><div class="lbl">Dikembalikan</div><div class="when">—</div></div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div class="card">
+      <h4 style="margin-bottom:14px">Riwayat permintaan</h4>
+      <ul class="timeline">
+        <li class="done"><span class="tdot"></span>
+          <div class="tt">Permintaan diajukan</div><div class="tm">06 Okt 2026 · 09:14 · oleh BEM Polinema</div>
+          <div class="tb">3 baris · surat permohonan diunggah.</div></li>
+        <li class="done"><span class="tdot"></span>
+          <div class="tt">Disetujui — sebagian</div><div class="tm">06 Okt 2026 · 13:02 · oleh Admin Inventaris</div>
+          <div class="tb">Meja lipat disetujui 4 dari 6; kursi 20 dari 20. Catatan: stok meja tersisa 4.</div></li>
+        <li class="current"><span class="tdot"></span>
+          <div class="tt">Menunggu serah terima</div><div class="tm">07 Okt 2026 · 08:30</div>
+          <div class="tb">Cetak berita acara lalu serahkan barang.</div></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 style="margin-bottom:14px">Berita acara</h4>
+      <div class="stepper">
+        <div class="step done"><span class="dot"></span><div class="lbl">Diterima</div><div class="when">—</div></div>
+        <div class="step fail"><span class="dot"></span><div class="lbl">Rusak</div><div class="when">2 unit</div></div>
+        <div class="step current"><span class="dot"></span><div class="lbl">Diperiksa</div><div class="when">sekarang</div></div>
+        <div class="step"><span class="dot"></span><div class="lbl">Selesai</div><div class="when">—</div></div>
+      </div>
+      <div class="sub-note" style="margin-top:18px">Red steps mark a failed/abnormal branch
+        (rusak, hilang) without aborting the flow — the return screen keeps the normal steps and
+        overlays the exception.</div>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <h3 class="sub">18.5 · Empty &amp; loading</h3>
+  <p class="sub-note">Empty states always carry an action. Skeletons match the final row height so
+    the table does not jump when data lands.</p>
+  <div class="grid2">
+    <div class="empty">
+      <div class="ic">▤</div>
+      <h4>Belum ada permintaan masuk</h4>
+      <p>Permintaan dari pihak eksternal akan muncul di sini setelah formulir publik dikirim.</p>
+      <button class="btn btn-primary btn-sm">Buka formulir publik</button>
+    </div>
+    <div class="card">
+      <div class="skel line w40" style="height:14px"></div>
+      <div class="skel line w70"></div>
+      <div class="skel line w55"></div>
+      <div style="height:10px"></div>
+      <div class="skel line w70"></div>
+      <div class="skel line w40"></div>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <h3 class="sub">18.6 · Form extras</h3>
+  <p class="sub-note">Everything the public request form and item editor add on top of §13:
+    date range, searchable combobox, file upload, quantity stepper and inline errors.</p>
+  <div class="grid2">
+    <div class="card">
+      <label class="f">Periode peminjaman</label>
+      <div class="daterange">
+        <input class="input" type="date" value="2026-10-12">
+        <span class="sep">→</span>
+        <input class="input" type="date" value="2026-10-14">
+        <span class="dur">3 hari</span>
+      </div>
+      <div class="help">Maksimal 7 hari. Perpanjangan diajukan ke admin.</div>
+      <div style="height:18px"></div>
+      <label class="f">Kategori barang</label>
+      <div class="combobox">
+        <input class="input" value="Audio &amp; sound" role="combobox" aria-expanded="true" aria-controls="cb1">
+        <div class="menu" id="cb1" role="listbox">
+          <button role="option" aria-selected="true">Audio &amp; sound <span class="hint">32 unit</span></button>
+          <button role="option" aria-selected="false">Visual &amp; proyeksi <span class="hint">18 unit</span></button>
+          <button role="option" aria-selected="false">Kamera &amp; dokumentasi <span class="hint">24 unit</span></button>
+          <button role="option" aria-selected="false">Meubel &amp; tenda <span class="hint">96 unit</span></button>
+          <button role="option" aria-selected="false">Kabel &amp; listrik <span class="hint">41 unit</span></button>
+        </div>
+      </div>
+      <div style="height:18px"></div>
+      <label class="f">Jumlah</label>
+      <div class="qty">
+        <button type="button" aria-label="Kurangi">−</button>
+        <input value="2" aria-label="Jumlah" inputmode="numeric">
+        <button type="button" aria-label="Tambah">+</button>
+        <span style="padding:0 12px;font-size:12px;color:var(--text-muted)">dari 6 tersedia</span>
+      </div>
+      <div style="height:18px"></div>
+      <label class="f" for="err-inline">Nama penanggung jawab</label>
+      <input class="input err" id="err-inline" value="" aria-invalid="true" placeholder="Nama lengkap">
+      <div class="help err">Wajib diisi sebelum permintaan dikirim.</div>
+    </div>
+    <div class="card">
+      <label class="f">Surat permohonan</label>
+      <div class="upload">
+        <div class="ic">⬆</div>
+        <p><b>Tarik berkas ke sini</b> atau pilih dari perangkat.<br>PDF/JPG, maksimal 5 MB.</p>
+        <button class="btn btn-outline btn-sm">Pilih berkas</button>
+      </div>
+      <ul class="upload-list">
+        <li><span class="nm">surat-permohonan.pdf</span>
+          <span class="bar"><span style="width:100%"></span></span>
+          <span class="ok">✓ 1,2 MB</span></li>
+        <li><span class="nm">daftar-barang.pdf</span>
+          <span class="bar"><span style="width:64%"></span></span>
+          <span style="color:var(--text-muted);font-size:12px">64%</span></li>
+      </ul>
+      <div class="sub-note" style="margin-top:16px">Identity fields for the account-less requester
+        are the same inputs as §13 — the difference is that nothing is saved to a profile; the
+        submission returns a tracking code only.</div>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <h3 class="sub">18.7 · Overlays</h3>
+  <p class="sub-note">Dialog for destructive confirmation, drawer for record detail, dropdown for
+    row actions, tooltip for icon-only controls, toast for the result of an action.</p>
+  <div class="grid2">
+    <div class="overlay-demo">
+      <div class="scrim"></div>
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+        <div class="dlg-ic">⚠</div>
+        <h4 id="dlg-t">Hapus barang ini?</h4>
+        <p>“Proyektor Epson EB-X06” akan dihapus dari inventaris. Tindakan ini tidak dapat
+          dibatalkan dan unit yang sedang dipinjam harus dikembalikan lebih dulu.</p>
+        <div class="dlg-foot">
+          <button class="btn btn-ghost">Batal</button>
+          <button class="btn btn-danger">Hapus barang</button>
+        </div>
+      </div>
+    </div>
+    <div class="overlay-demo" style="min-height:340px">
+      <div class="scrim"></div>
+      <div class="drawer" role="dialog" aria-modal="true" aria-labelledby="drw-t">
+        <h4 id="drw-t">PRM-2026-0042</h4>
+        <div class="row"><span class="st st-submitted">Diajukan</span>
+          <span style="font-size:12px;color:var(--text-muted)">BEM Polinema</span></div>
+        <div class="meta" style="font-size:13px;color:var(--text-muted)">
+          <div>Periode · 12–14 Okt 2026</div>
+          <div>Keperluan · Seminar Nasional JTI</div>
+          <div>Lampiran · surat-permohonan.pdf</div>
+        </div>
+        <div class="table-wrap" style="border-radius:var(--r-md)">
+          <table class="data" style="font-size:12.5px">
+            <thead><tr><th>Barang</th><th class="num">Diminta</th><th class="num">Stok</th></tr></thead>
+            <tbody>
+              <tr><td>Proyektor Epson</td><td class="num">2</td><td class="num">6</td></tr>
+              <tr><td>Sound system</td><td class="num">1</td><td class="num">3</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="drawer-foot">
+          <button class="btn btn-outline">Tolak</button>
+          <button class="btn btn-primary">Setujui</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:16px;align-items:flex-start">
+    <div class="dropdown">
+      <button>Tinjau permintaan</button>
+      <button>Hubungi peminjam</button>
+      <hr>
+      <button class="danger">Tolak permintaan</button>
+    </div>
+    <div class="tooltip">
+      <button class="btn btn-outline btn-icon" aria-label="Cetak berita acara">⎙</button>
+      <span class="tip">Cetak berita acara</span>
+    </div>
+    <div class="toast-stack">
+      <div class="toast ok"><span>✓</span><div><div class="tt">Permintaan disetujui</div>
+        <div class="tm">PRM-2026-0042 · stok direservasi.</div></div><span class="x">✕</span></div>
+      <div class="toast warn"><span>!</span><div><div class="tt">Stok menipis</div>
+        <div class="tm">Meja lipat tersisa 4 unit.</div></div><span class="x">✕</span></div>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <h3 class="sub">18.8 · Berita acara (printable)</h3>
+  <p class="sub-note">The handover/return document. Fixed A4-friendly width, high-contrast ink,
+    and <code>@media print</code> strips the shell, nav and this note so “Cetak” produces only the
+    document. Signature blocks sit side by side.</p>
+  <div class="no-print" style="margin-bottom:12px">
+    <button class="btn btn-outline btn-sm" onclick="window.print()">⎙ Cetak pratinjau</button>
+  </div>
+  <div class="doc">
+    <div class="doc-head">
+      <div class="mark">HM</div>
+      <div>
+        <h3>Himpunan Mahasiswa Teknologi Informasi</h3>
+        <div class="org">Politeknik Negeri Malang · Jl. Soekarno Hatta No. 9, Malang 65141</div>
+      </div>
+    </div>
+    <h4 class="title">Berita Acara Serah Terima Barang</h4>
+    <div class="docno">Nomor: 042/BA-ST/HMTI/X/2026</div>
+    <div class="meta-row"><b>Peminjam</b><span>BEM Polinema</span></div>
+    <div class="meta-row"><b>Penanggung jawab</b><span>Rangga Prasetya · 0812-3456-7890</span></div>
+    <div class="meta-row"><b>Periode</b><span>12 Oktober 2026 – 14 Oktober 2026</span></div>
+    <div class="meta-row"><b>Keperluan</b><span>Seminar Nasional JTI 2026</span></div>
+    <table>
+      <thead>
+        <tr><th style="width:36px">No</th><th>Nama barang</th><th style="width:80px">Jumlah</th>
+          <th style="width:110px">Kondisi keluar</th><th style="width:110px">Kondisi kembali</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>Proyektor Epson EB-X06</td><td>2 unit</td><td>Baik</td><td>Baik</td></tr>
+        <tr><td>2</td><td>Sound system portable</td><td>1 set</td><td>Baik</td><td>Baik</td></tr>
+        <tr><td>3</td><td>Meja lipat</td><td>4 unit</td><td>Baik</td><td>Baik</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Barang diserahkan dalam kondisi baik dan lengkap. Peminjam bertanggung jawab
+      penuh atas barang selama masa peminjaman dan mengembalikannya paling lambat pada tanggal
+      yang disepakati. Kerusakan atau kehilangan menjadi tanggung jawab peminjam.</p>
+    <div class="signs">
+      <div>Pihak yang menyerahkan<div class="line">Admin Inventaris HMTI</div></div>
+      <div>Pihak yang menerima<div class="line">Rangga Prasetya</div></div>
+    </div>
+    <div class="stamp">Dicetak dari Sistem Inventaris HMTI · 07 Oktober 2026, 08:30 WIB</div>
+  </div>
+</section>
+
 <!-- ============ VOICE ============ -->
 <section id="voice">
-  <div class="sec-head"><span class="sec-num">18</span><h2 class="sec">Voice &amp; tone</h2></div>
+  <div class="sec-head"><span class="sec-num">19</span><h2 class="sec">Voice &amp; tone</h2></div>
   <div class="grid2">
     <div class="card">
       <h4>Register</h4>
@@ -1262,7 +1967,7 @@ label.f{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
 
 <!-- ============ DECISIONS ============ -->
 <section id="decisions">
-  <div class="sec-head"><span class="sec-num">19</span><h2 class="sec">Open decisions</h2></div>
+  <div class="sec-head"><span class="sec-num">20</span><h2 class="sec">Open decisions</h2></div>
   <p class="sec-lede">Ordered by how much each blocks the build. Nothing below is settled by
     research alone — each needs a call from the organisation.</p>
   <table class="t">
@@ -1298,7 +2003,7 @@ label.f{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
 
 <!-- ============ PROVENANCE ============ -->
 <section id="provenance">
-  <div class="sec-head"><span class="sec-num">20</span><h2 class="sec">Provenance</h2></div>
+  <div class="sec-head"><span class="sec-num">21</span><h2 class="sec">Provenance</h2></div>
   <p class="sec-lede">What is fact, what is decision, and what is still guesswork. This system is
     only as trustworthy as this table.</p>
   <table class="t">
@@ -1337,6 +2042,9 @@ label.f{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
     blue cannot be confirmed.
   </div>
 </section>
+
+
+
 
 </main>
 </div>
