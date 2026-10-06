@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>04 — Design editors an agent can drive (Figma alternatives for bb on Fedora)</title>
+<style>
+  :root{
+    --bg:#fafafa; --surface:#fff; --surface-2:#f5f5f5; --surface-3:#e5e5e5;
+    --border:#e5e5e5; --border-strong:#d4d4d4;
+    --text:#0a0a0a; --muted:#737373; --subtle:#a1a1a1;
+    --brand:#ffe600; --brand-ink:#0a0a0a;
+    --accent:#041587; --accent-ink:#fff;
+    --tertiary:#a54105;
+    --ok:#15803d; --ok-bg:#f0fdf4;
+    --warn:#b45309; --warn-bg:#fffbeb;
+    --bad:#e40014; --bad-bg:#fef2f2;
+    --sans:'Montserrat',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px;
+    --shadow-sm:0 1px 3px rgb(0 0 0/.08),0 1px 2px rgb(0 0 0/.04);
+    --shadow-md:0 4px 12px rgb(0 0 0/.08),0 2px 4px rgb(0 0 0/.04);
+    --shadow-lg:0 12px 32px rgb(0 0 0/.10),0 4px 8px rgb(0 0 0/.04);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0a0a0a; --surface:#171717; --surface-2:#262626; --surface-3:#404040;
+      --border:rgb(255 255 255/.10); --border-strong:rgb(255 255 255/.18);
+      --text:#fafafa; --muted:#a1a1a1; --subtle:#737373;
+      --accent:#698fe6; --accent-ink:#0a0a0a; --tertiary:#e28d68;
+      --ok:#4ade80; --ok-bg:#052e16; --warn:#fbbf24; --warn-bg:#3b2506;
+      --bad:#ff6568; --bad-bg:#3b0a0f;
+      --shadow-sm:0 1px 3px rgb(0 0 0/.5); --shadow-md:0 4px 12px rgb(0 0 0/.5);
+      --shadow-lg:0 12px 32px rgb(0 0 0/.6);
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; padding:0 0 64px;
+    background:var(--bg); color:var(--text);
+    font-family:var(--sans); font-size:16px; line-height:1.65;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:0 24px}
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:var(--mono); font-size:.86em; background:var(--surface-2);
+       border:1px solid var(--border); border-radius:4px; padding:.08em .35em}
+  pre{margin:10px 0 0; padding:14px 16px; background:var(--surface-2); border:1px solid var(--border);
+      border-radius:var(--r-md); overflow-x:auto; font-size:13px; line-height:1.6}
+  pre code{background:none; border:0; padding:0; font-size:inherit}
+
+  /* header */
+  header{padding:56px 0 8px}
+  .eyebrow{display:inline-block; font-size:12px; font-weight:600; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--brand-ink); background:var(--brand);
+    padding:4px 10px; border-radius:var(--r-sm)}
+  h1{font-size:clamp(28px,4vw,44px); line-height:1.1; letter-spacing:-.02em; margin:18px 0 10px; max-width:22ch}
+  .lede{font-size:18px; color:var(--muted); max-width:72ch; margin:0 0 18px}
+  .meta{display:flex; flex-wrap:wrap; gap:8px; font-size:12.5px; color:var(--muted)}
+  .meta span{background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:3px 10px}
+
+  h2{font-size:24px; line-height:1.25; letter-spacing:-.01em; margin:56px 0 6px}
+  h2 .n{color:var(--subtle); font-variant-numeric:tabular-nums; margin-right:8px}
+  .sub{color:var(--muted); margin:0 0 20px; max-width:80ch}
+
+  /* verdict cards */
+  .verdicts{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:24px}
+  .vcard{position:relative; background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r-xl); padding:22px 22px 20px; box-shadow:var(--shadow-sm)}
+  .vcard .rank{position:absolute; top:-13px; left:20px; font-size:11.5px; font-weight:700;
+    letter-spacing:.1em; text-transform:uppercase; background:var(--brand); color:var(--brand-ink);
+    border-radius:999px; padding:3px 10px}
+  .vcard h3{margin:10px 0 2px; font-size:19px}
+  .vcard .who{font-size:12.5px; color:var(--muted); margin:0 0 12px}
+  .vcard p{margin:0 0 12px; font-size:14.5px}
+  .vcard ul{margin:0; padding-left:18px; font-size:14px; color:var(--muted)}
+  .vcard li{margin:4px 0}
+  .vcard.best{border-color:var(--accent); box-shadow:var(--shadow-md)}
+
+  /* pills */
+  .pill{display:inline-block; font-size:11.5px; font-weight:600; border-radius:999px;
+    padding:2px 9px; border:1px solid var(--border-strong); color:var(--muted); background:var(--surface-2); white-space:nowrap}
+  .pill.ok{color:var(--ok); background:var(--ok-bg); border-color:transparent}
+  .pill.warn{color:var(--warn); background:var(--warn-bg); border-color:transparent}
+  .pill.bad{color:var(--bad); background:var(--bad-bg); border-color:transparent}
+  .pill.acc{color:var(--accent-ink); background:var(--accent); border-color:transparent}
+
+  /* distinction */
+  .two{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; margin-top:8px}
+  .panel{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:20px}
+  .panel h3{margin:0 0 6px; font-size:16px}
+  .panel p{margin:0 0 10px; font-size:14.5px; color:var(--muted)}
+  .panel .ex{font-size:13.5px}
+  .note{margin-top:16px; padding:14px 16px; border-left:3px solid var(--tertiary);
+    background:var(--surface); border-radius:0 var(--r-md) var(--r-md) 0; font-size:14.5px}
+  .note strong{color:var(--text)}
+
+  /* table */
+  .tablewrap{margin-top:14px; overflow-x:auto; border:1px solid var(--border);
+    border-radius:var(--r-lg); background:var(--surface); box-shadow:var(--shadow-sm)}
+  table{border-collapse:collapse; width:100%; min-width:1020px; font-size:13.5px}
+  thead th{position:sticky; top:0; background:var(--surface-2); text-align:left;
+    padding:12px 14px; font-size:12px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--muted); border-bottom:1px solid var(--border); white-space:nowrap}
+  thead th.hl{color:var(--text); background:color-mix(in srgb,var(--brand) 22%,var(--surface-2))}
+  tbody th{position:sticky; left:0; background:var(--surface); text-align:left; font-weight:600;
+    padding:11px 14px; border-top:1px solid var(--border); white-space:nowrap; font-size:13px}
+  tbody td{padding:11px 14px; border-top:1px solid var(--border); vertical-align:top; color:var(--muted)}
+  tbody td.hl{background:color-mix(in srgb,var(--brand) 10%,var(--surface)); color:var(--text)}
+  tbody tr:hover td{background:var(--surface-2)}
+  tbody tr:hover td.hl{background:color-mix(in srgb,var(--brand) 18%,var(--surface-2))}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; font-size:12.5px; color:var(--muted)}
+  .legend b{color:var(--text)}
+
+  /* tool cards */
+  .tools{display:grid; gap:16px; margin-top:8px}
+  .tool{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl);
+    padding:22px; box-shadow:var(--shadow-sm)}
+  .tool-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:10px; margin-bottom:2px}
+  .tool-head h3{margin:0; font-size:20px; letter-spacing:-.01em}
+  .tool-head .tag{font-size:12px; color:var(--muted)}
+  .tool .spec{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 14px}
+  .cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px}
+  .cols h4{margin:0 0 6px; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+  .cols ul{margin:0; padding-left:18px; font-size:14.5px}
+  .cols li{margin:5px 0}
+  .cols .why li{color:var(--text)}
+  .cols .caveat li{color:var(--muted)}
+
+  /* also-considered */
+  .mini{width:100%; min-width:640px; font-size:14px}
+  .mini td,.mini th{white-space:normal}
+  .mini thead th{font-size:11.5px}
+
+  /* recipes */
+  details.recipe{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+    margin:12px 0; box-shadow:var(--shadow-sm); overflow:hidden}
+  details.recipe>summary{cursor:pointer; padding:16px 20px; font-weight:600; font-size:16px;
+    display:flex; align-items:center; gap:10px; list-style:none}
+  details.recipe>summary::-webkit-details-marker{display:none}
+  details.recipe>summary::before{content:"▸"; color:var(--accent); font-size:13px; transition:transform .15s}
+  details.recipe[open]>summary::before{transform:rotate(90deg)}
+  details.recipe[open]>summary{border-bottom:1px solid var(--border)}
+  details.recipe .body{padding:4px 20px 20px}
+  details.recipe .body p{font-size:14.5px; color:var(--muted); margin:12px 0 0}
+  details.recipe .body ol{font-size:14.5px; margin:12px 0 0; padding-left:20px}
+  details.recipe .body li{margin:6px 0}
+
+  /* checklist */
+  .check{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; margin-top:8px}
+  .q{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:16px; font-size:14.5px}
+  .q b{display:block; margin-bottom:4px}
+  .q span{color:var(--muted); font-size:13.5px}
+
+  /* sources */
+  details.src{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px 20px; margin-top:12px}
+  details.src>summary{cursor:pointer; font-weight:600}
+  details.src ol{font-size:13.5px; color:var(--muted); padding-left:20px; margin:12px 0 0}
+  details.src li{margin:6px 0; word-break:break-word}
+
+  footer{margin-top:56px; padding-top:20px; border-top:1px solid var(--border);
+    font-size:13px; color:var(--muted); display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">docs/research/04</span>
+  <h1>Design editors an agent can drive</h1>
+  <p class="lede">Figma alternatives where an agent running in <strong>bb</strong> — on this Fedora/Nobara
+  machine — can read the design, edit it, and turn it into code. Ranked by what actually matters:
+  the agent surface, Linux support, and licence.</p>
+  <div class="meta">
+    <span>2026-09-27</span>
+    <span>Nobara 44 · KDE · Fedora family</span>
+    <span>bb providers: codex · claude-code · pi · opencode</span>
+    <span>Full evidence: 04-design-editor-options-agent-driven.md</span>
+  </div>
+</header>
+
+<h2><span class="n">01</span>Verdict first</h2>
+<p class="sub">Three viable picks and one category change. The rest of the field is either art tooling,
+abandoned, or has no agent surface at all.</p>
+
+<div class="verdicts">
+  <div class="vcard best">
+    <span class="rank">Pick this</span>
+    <h3>OpenPencil</h3>
+    <p class="who">MIT · native Linux · <code>.op</code> JSON · <code>op</code> CLI + MCP + headless</p>
+    <p>The only candidate that can design and export with <strong>no GUI, no account, no cloud</strong>.
+    A bb agent designs headlessly, writes git-diffable <code>.op</code> files, then runs codegen to React,
+    Vue, Svelte, Flutter, SwiftUI, Compose, or React Native.</p>
+    <ul>
+      <li><code>.deb</code> / <code>.AppImage</code>, single Rust binary</li>
+      <li><code>op start --headless --file design.op</code></li>
+      <li>Model tiers tuned for small / local models</li>
+    </ul>
+  </div>
+  <div class="vcard">
+    <span class="rank">Best canvas</span>
+    <h3>Brilliant</h3>
+    <p class="who">Proprietary · browser on Linux · <code>.bl</code> text · MCP free</p>
+    <p>The most agent-native editing experience here — and its MCP-driven agent use is
+    <strong>unlimited even on the free plan</strong>. Workspaces are plain folders of
+    <code>.bl</code> Blueprint text, so designs diff in PRs.</p>
+    <ul>
+      <li>No Linux desktop build — Chromium/Firefox only</li>
+      <li>Local MCP bridge via <code>npx -y @brilliant-hq/mcp</code></li>
+      <li>Figma import; React/HTML/SVG/PDF export</li>
+    </ul>
+  </div>
+  <div class="vcard">
+    <span class="rank">Open + self-hosted</span>
+    <h3>Penpot</h3>
+    <p class="who">MPL-2.0 · self-host · official MCP via browser plugin</p>
+    <p>The mature, fully open option. Run it with Podman/Docker, connect the official MCP server
+    through a plugin in the browser tab, and the agent works on your own instance.</p>
+    <ul>
+      <li>Heaviest setup of the three</li>
+      <li>Plugin tab must stay open</li>
+      <li>No plain-text design file for the agent</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Category change:</strong> <strong>Onlook</strong> (Apache-2.0, Linux <code>.deb</code>/<code>.AppImage</code>)
+  doesn't export code from a design — it edits a real Next.js + Tailwind codebase directly.
+  If the project is already React, the code <em>is</em> the design and there is nothing to translate.
+</div>
+
+<h2><span class="n">02</span>The one distinction that matters</h2>
+<p class="sub">Family matters more than the feature list. Two corollaries follow from it.</p>
+
+<div class="two">
+  <div class="panel">
+    <h3>Design-as-text</h3>
+    <p>The design is a file on disk that the agent reads and writes like code.</p>
+    <p class="ex"><span class="pill acc">OpenPencil</span> <span class="pill acc">Brilliant</span> <span class="pill acc">Onlook</span></p>
+    <ul>
+      <li>Works with <em>any</em> bb provider — even one without MCP</li>
+      <li>Git diff, branch, review, blame</li>
+      <li>Reading needs no running app</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h3>Design-in-a-service</h3>
+    <p>The design lives in an app or database; the agent goes through MCP or a plugin API.</p>
+    <p class="ex"><span class="pill">Penpot</span> <span class="pill">Figma</span></p>
+    <ul>
+      <li>Needs an MCP-capable provider (Codex / Claude Code / OpenCode)</li>
+      <li>The app and the bridge must be running</li>
+      <li>Richer live editing, weaker git story</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note">
+  <strong>Corollary 1.</strong> If the agent drives the tool over MCP, the tool's built-in AI is irrelevant —
+  the model doing the work is bb's provider model, local or cloud. "Does it support Ollama?" only matters
+  for the app's <em>own</em> chat, not for a bb workflow.<br>
+  <strong>Corollary 2.</strong> Export fidelity is a spectrum: OpenPencil/Brilliant translate a design file
+  to code; Onlook never separates the two.
+</div>
+
+<h2><span class="n">03</span>Side by side</h2>
+<p class="sub">Data captured 2026-09-27. "Runs on Fedora" means natively, not "in a VM somewhere".</p>
+
+<div class="tablewrap">
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th class="hl">OpenPencil</th>
+        <th>Brilliant</th>
+        <th>Penpot</th>
+        <th>Onlook</th>
+        <th>Graphite</th>
+        <th>Lunacy</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>What it is</th>
+        <td class="hl">AI-native vector design tool, Figma-like</td>
+        <td>AI-native vector design tool, Figma-like</td>
+        <td>Open-source design platform</td>
+        <td>Visual editor for React code</td>
+        <td>2D art / procedural graphics</td>
+        <td>Offline Figma-like editor</td>
+      </tr>
+      <tr>
+        <th>Licence</th>
+        <td class="hl"><span class="pill ok">MIT</span></td>
+        <td><span class="pill warn">Proprietary</span></td>
+        <td><span class="pill ok">MPL-2.0</span></td>
+        <td><span class="pill ok">Apache-2.0</span></td>
+        <td><span class="pill ok">Apache-2.0</span></td>
+        <td><span class="pill warn">Free, closed</span></td>
+      </tr>
+      <tr>
+        <th>Traction</th>
+        <td class="hl">6.0k ★ · v0.8.4 · active</td>
+        <td>Beta product · docs repo 19 ★</td>
+        <td>60.4k ★</td>
+        <td>26.8k ★ · v0.2.32</td>
+        <td>27.4k ★</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <th>Runs on Fedora</th>
+        <td class="hl"><span class="pill ok">Native</span> <code>.deb</code> + <code>.AppImage</code>, x64/arm64</td>
+        <td><span class="pill warn">Browser only</span> Chrome/Edge/Firefox; desktop app is macOS/Windows</td>
+        <td><span class="pill ok">Self-host</span> Podman/Docker + browser UI</td>
+        <td><span class="pill ok">Native</span> <code>.deb</code> + <code>.AppImage</code> (Electron)</td>
+        <td>Browser (WASM)</td>
+        <td>Native Linux app</td>
+      </tr>
+      <tr>
+        <th>Agent surface</th>
+        <td class="hl"><strong>MCP</strong> (stdio + <code>127.0.0.1:&lt;port&gt;/mcp</code>) <strong>and</strong> <code>op</code> CLI, headless mode</td>
+        <td><strong>MCP</strong> — <code>127.0.0.1:3333/mcp</code> desktop, or <code>@brilliant-hq/mcp</code> bridge for the web tab</td>
+        <td><strong>Official MCP</strong> — server ↔ WebSocket ↔ plugin in the browser tab</td>
+        <td>None needed — edits the repo's code</td>
+        <td><span class="pill bad">None</span></td>
+        <td><span class="pill bad">None</span></td>
+      </tr>
+      <tr>
+        <th>Design file</th>
+        <td class="hl"><code>.op</code> = JSON, git-friendly</td>
+        <td><code>.bl</code> = Blueprint text, one element per line</td>
+        <td>Penpot storage/DB; <code>.penpot</code> export</td>
+        <td>Your Next.js source</td>
+        <td><code>.graphite</code></td>
+        <td>Native format</td>
+      </tr>
+      <tr>
+        <th>Code export</th>
+        <td class="hl">React+Tailwind, HTML+CSS, Vue, Svelte, Flutter, SwiftUI, Compose, React Native</td>
+        <td>React, HTML, SVG, PDF, PNG/JPEG/WebP, MP4/MOV</td>
+        <td>Via plugins / MCP</td>
+        <td>The code itself</td>
+        <td><span class="pill bad">None</span> (art)</td>
+        <td><span class="pill bad">None for agents</span></td>
+      </tr>
+      <tr>
+        <th>Built-in chat + local models</th>
+        <td class="hl">9+ provider presets; <strong>local Ollama/vLLM base URL</strong>; prompt tiers for small models</td>
+        <td>BYO key, Claude Code / Codex CLI; <strong>custom OpenAI-compatible endpoints</strong> with LM Studio / Ollama / vLLM presets</td>
+        <td>—</td>
+        <td>OpenRouter etc.</td>
+        <td>—</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <th>Best for</th>
+        <td class="hl">Coding designs from bb with zero licensing friction</td>
+        <td>Polished canvas + Figma import, designs as text files</td>
+        <td>Self-hosting, staying fully open source</td>
+        <td>Design tweaks on an existing React app</td>
+        <td>Illustration / art, not UI</td>
+        <td>Offline sketching</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<div class="legend">
+  <span><span class="pill ok">green</span> works as needed</span>
+  <span><span class="pill warn">amber</span> works with a caveat</span>
+  <span><span class="pill bad">red</span> not available</span>
+</div>
+
+<h2><span class="n">04</span>The four candidates in detail</h2>
+
+<div class="tools">
+
+  <div class="tool">
+    <div class="tool-head"><h3>OpenPencil</h3><span class="tag">MIT · Rust · created 2026-02 · 6.0k ★</span></div>
+    <div class="spec">
+      <span class="pill acc">native Linux</span><span class="pill acc">headless</span>
+      <span class="pill acc">.op JSON</span><span class="pill acc">MCP + CLI</span>
+      <span class="pill acc">8 code targets</span>
+    </div>
+    <div class="cols">
+      <div class="why">
+        <h4>Why it wins here</h4>
+        <ul>
+          <li>Two agent doors, both local: the <code>op</code> CLI (<code>op design</code>, <code>op insert</code>, <code>op export</code>, <code>op codegen:*</code>) and an MCP server (<code>op-mcp</code>) over stdio or HTTP.</li>
+          <li><code>op start --headless --file design.op</code> — a windowless, file-backed MCP server, so a bb worktree needs no GUI at all.</li>
+          <li><code>op install --target codex</code> installs the official agent skill; one-click MCP into Claude Code / Codex / OpenCode / Kiro / Copilot.</li>
+          <li>Local models are a first-class case: "basic-tier" models (Qwen, Llama, Mistral, MiniMax) get simplified prompts, and source confirms local Ollama/vLLM base URLs.</li>
+        </ul>
+      </div>
+      <div class="caveat">
+        <h4>Caveats</h4>
+        <ul>
+          <li>Young — first release Feb 2026, v0.8.4, effectively one primary author.</li>
+          <li>GUI is a native Rust/GPU app (no Electron), so it won't feel like Figma on day one.</li>
+          <li>Chinese-ecosystem integrations (sponsors, Anthropic-format passthrough for Kimi/GLM/DouBao) — harmless for the CLI/MCP path.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool">
+    <div class="tool-head"><h3>Brilliant</h3><span class="tag">proprietary · browser on Linux · beta</span></div>
+    <div class="spec">
+      <span class="pill warn">no Linux desktop build</span><span class="pill acc">MCP free</span>
+      <span class="pill acc">.bl text files</span><span class="pill acc">Figma import</span>
+    </div>
+    <div class="cols">
+      <div class="why">
+        <h4>Why it's worth it</h4>
+        <ul>
+          <li>The most polished agent-native canvas: built-in chat, external-agent MCP, per-turn revert, quality linter.</li>
+          <li>MCP-driven agent use is <strong>unlimited on every plan, Free included</strong> — only the in-app chat is capped (10 msgs/day with your own AI on Free).</li>
+          <li>A workspace is just a folder; canvases are <code>.bl</code> text. "No hidden project database" — git branch, PR review and <code>git blame</code> work on designs.</li>
+          <li>One-time local bridge for the web tab: <code>npx -y @brilliant-hq/mcp</code>, a stdio↔loopback router. Design data never leaves the machine.</li>
+        </ul>
+      </div>
+      <div class="caveat">
+        <h4>Caveats</h4>
+        <ul>
+          <li>Closed source, no self-host, account required.</li>
+          <li>Browser-only on Fedora (Safari unsupported); Chromium 147+ asks for local-network permission.</li>
+          <li>MCP needs the tab + bridge running; the GUI can't be fully headless.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool">
+    <div class="tool-head"><h3>Penpot</h3><span class="tag">MPL-2.0 · 60.4k ★ · the mature open option</span></div>
+    <div class="spec">
+      <span class="pill acc">self-host</span><span class="pill acc">official MCP</span>
+      <span class="pill warn">plugin bridge</span><span class="pill warn">no text files</span>
+    </div>
+    <div class="cols">
+      <div class="why">
+        <h4>Why choose it</h4>
+        <ul>
+          <li>The only fully open, self-hostable, battle-tested Figma alternative of the group.</li>
+          <li>Official MCP server now lives in the main repo (<code>penpot/penpot/tree/develop/mcp</code>); the standalone repo was archived when it was merged.</li>
+          <li>Works against your own instance — no cloud dependency, no proprietary components.</li>
+        </ul>
+      </div>
+      <div class="caveat">
+        <h4>Caveats</h4>
+        <ul>
+          <li>Heaviest setup: self-host + plugin server <code>:4400</code> + MCP server <code>:4401</code> + a plugin tab that must stay open.</li>
+          <li>Node ≥ 22 and <code>npm run bootstrap</code>.</li>
+          <li>No plain-text design file — an agent without MCP cannot read the design at all.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool">
+    <div class="tool-head"><h3>Onlook</h3><span class="tag">Apache-2.0 · 26.8k ★ · code-as-design</span></div>
+    <div class="spec">
+      <span class="pill acc">native Linux</span><span class="pill acc">zero translation loss</span>
+      <span class="pill warn">Next.js + Tailwind only</span>
+    </div>
+    <div class="cols">
+      <div class="why">
+        <h4>Why it's different</h4>
+        <ul>
+          <li>"The Cursor for designers": a visual editor operating on a real Next.js + Tailwind codebase.</li>
+          <li>The agent surface is the repository itself — bb edits the same files, Onlook is the human GUI on top.</li>
+          <li>No MCP, no export step, no drift between design and code.</li>
+        </ul>
+      </div>
+      <div class="caveat">
+        <h4>Caveats</h4>
+        <ul>
+          <li>Framework-bound by design (Next.js + Tailwind).</li>
+          <li>Not a design artifact — nothing to hand to a designer as a file.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h3 style="margin:40px 0 6px;font-size:18px">Can OpenPencil round-trip back to Figma?</h3>
+<p class="sub">Short answer: <strong>no native <code>.fig</code> export.</strong> <code>op import:figma design.fig</code>
+is import-only, and Figma's importers don't read <code>.op</code>. Four lossy routes back:</p>
+<div class="tablewrap">
+  <table class="mini">
+    <thead><tr><th>Route</th><th>Survives</th><th>Lost</th></tr></thead>
+    <tbody>
+      <tr><th>SVG export → paste / drag into a Figma file <span class="pill ok">best editable</span><br><span class="tag">desktop app export dialog only — CLI/MCP exports are <code>png</code>/<code>jpeg</code>/<code>webp</code>/<code>pdf</code></span></th>
+        <td>vectors, fills, strokes, text, groups</td>
+        <td>auto-layout, components/variants, variables/tokens, constraints. Figma's own docs call SVG the lossless cross-tool format — it is still a snapshot.</td></tr>
+      <tr><th>HTML+CSS export → <a href="https://www.figma.com/community/plugin/1159123024924461424">html.to.design</a> plugin</th>
+        <td>screens rebuilt as frames, with auto-layout heuristics</td>
+        <td>exactness; third-party plugin</td></tr>
+      <tr><th>PNG / JPEG / WebP / PDF</th>
+        <td>pixels</td>
+        <td>all structure — review only</td></tr>
+      <tr><th><code>op export-deck --format pptx</code> → Figma file browser</th>
+        <td>slide content (Figma imports <code>.pptx</code>)</td>
+        <td>anything outside the deck boards</td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="note">
+  A true round trip needs a small Figma plugin that reads <code>.op</code> (documented JSON) through the
+  Plugin API — nobody has built one. Brilliant has the same shape (imports <em>from</em> Figma, exports
+  React/HTML/SVG/PDF) and Penpot imports SVG, not <code>.fig</code>. So "design in an open tool, finish in
+  Figma" always means a lossy SVG/code hand-off, never a file interchange.
+</div>
+
+<h3 style="margin:40px 0 6px;font-size:18px">Also considered — and why not</h3>
+<div class="tablewrap">
+  <table class="mini">
+    <thead><tr><th>Tool</th><th>Why it's not the answer here</th></tr></thead>
+    <tbody>
+      <tr><th>Graphite <span class="pill">Apache-2.0 · 27.4k ★</span></th>
+        <td>Excellent Rust 2D/vector + node-based procedural tool with a browser editor — but it's graphic-design/art tooling, not UI/design-system work, and has no agent surface or code export.</td></tr>
+      <tr><th>Lunacy <span class="pill">free · closed</span></th>
+        <td>Native Windows/macOS/Linux, Figma import, self-deployable "Lunacy Cloud" — but closed source and no MCP/CLI agent surface. Good offline sketch tool, dead end for bb.</td></tr>
+      <tr><th>Pencil Project <span class="pill">GPL-2.0 · 9.9k ★</span></th>
+        <td>The old diagramming/prototyping tool that OpenPencil positions itself against. Cross-platform, no AI/MCP, no modern component model.</td></tr>
+      <tr><th>Quant-UX <span class="pill">GPL-3.0 · 2.7k ★</span></th>
+        <td>Self-hostable prototyping + user testing with Vue code export. A research/prototyping tool, not an agent-driven design surface.</td></tr>
+      <tr><th>Akira <span class="pill">GPL-3.0 · 5.3k ★</span></th>
+        <td>The historic "Figma for Linux" (Vala/GTK). Effectively stalled (last push 2025-12), no agent surface.</td></tr>
+      <tr><th>Plasmic <span class="pill">MIT · 7.0k ★</span></th>
+        <td>Visual React builder with codegen and self-host — closer to a low-code builder than a design tool. Worth a look if the goal shifts from <em>designing</em> to <em>assembling</em>.</td></tr>
+      <tr><th>Figma itself</th>
+        <td>Not dead on Linux: Figma now recommends its <strong>remote MCP server</strong> (hosted, no desktop app), and <code>GLips/Figma-Context-MCP</code> (MIT, 15.9k ★) uses the REST API + token from any OS. Cheapest path if the existing Figma library is the asset — but you stay on a proprietary, cloud-bound canvas.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">05</span>Wiring it into bb</h2>
+<p class="sub">The constraint that shapes every recipe: MCP lives in the provider CLI, not in bb core.</p>
+
+<div class="two">
+  <div class="panel">
+    <h3>bb facts</h3>
+    <ul style="font-size:14.5px;padding-left:18px;margin:0">
+      <li>Providers on this machine: <code>codex</code>, <code>claude-code</code>, <code>pi</code>, <code>acp-opencode</code>, <code>acp-cursor</code>, <code>acp-omp</code>.</li>
+      <li>MCP-capable: <strong>Codex</strong> (<code>config.toml</code>), <strong>Claude Code</strong> (<code>claude mcp add</code>), <strong>OpenCode</strong> (<code>opencode.json</code>) — stdio and streamable HTTP.</li>
+      <li><strong>Pi has no MCP client.</strong> A pi thread reaches a design tool through the shell (<code>op</code>, <code>curl</code>) or through the design file itself.</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h3>Local models</h3>
+    <ul style="font-size:14.5px;padding-left:18px;margin:0">
+      <li>bb has no "local" provider id — the local model is configured inside the provider CLI you pick.</li>
+      <li><strong>Pi:</strong> <code>~/.pi/agent/models.json</code> with an OpenAI-compatible <code>baseUrl</code> (Ollama <code>:11434/v1</code>, LM Studio, vLLM, SGLang), or GGUF models via the llama.cpp router (<code>/llama</code>).</li>
+      <li><strong>OpenCode:</strong> its own provider config.</li>
+      <li>Small models struggle with long design trees — OpenPencil is the one tool that ships prompt tiers for exactly this.</li>
+    </ul>
+  </div>
+</div>
+
+<details class="recipe" open>
+  <summary>A — OpenPencil <span class="pill ok">recommended first try</span></summary>
+  <div class="body">
+<pre><code># 1. CLI only (no GUI needed) — usable from a bb worktree
+curl -fsSL https://raw.githubusercontent.com/ZSeven-W/openpencil/main/scripts/install-op.sh | bash
+# or grab OpenPencil-*-x64-linux.AppImage / .deb from GitHub Releases
+
+# 2. design headlessly, file-backed
+op start --headless --file design.op     # windowless MCP server on a file
+op design @landing.txt                   # batch design from a DSL file
+op export --output hero.png --format png
+
+# 3. code out
+op codegen:plan &lt;plan.json&gt; ; op codegen:assemble &lt;planId&gt; --framework react
+op install --target codex                # install the OpenPencil agent skill</code></pre>
+    <p>Then either let the bb agent call <code>op</code> directly (works on every provider, including pi),
+    or register the MCP server with a Codex / OpenCode / Claude Code thread — stdio via the desktop
+    binary with <code>--mcp design.op</code>, or HTTP at <code>http://127.0.0.1:&lt;port&gt;/mcp</code>.</p>
+  </div>
+</details>
+
+<details class="recipe">
+  <summary>B — Brilliant <span class="pill">best canvas</span></summary>
+  <div class="body">
+    <ol>
+      <li>Open <a href="https://brilliant.design">brilliant.design</a> in Firefox or Chromium on Fedora and sign in.</li>
+      <li>Register <code>npx -y @brilliant-hq/mcp</code> as the MCP server (or <code>http://127.0.0.1:3333/mcp</code> if you ever run the macOS/Windows app) in the Codex / OpenCode / Claude Code config of a bb thread.</li>
+      <li>Keep the workspace folder inside the repo so <code>.bl</code> files land in git — a pi thread can then read and patch them as text, no MCP required.</li>
+    </ol>
+  </div>
+</details>
+
+<details class="recipe">
+  <summary>C — Penpot self-hosted <span class="pill">fully open</span></summary>
+  <div class="body">
+    <ol>
+      <li>Self-host Penpot with Podman/Docker compose and open the UI in a browser.</li>
+      <li>From <code>penpot/penpot/mcp</code>: <code>npm install &amp;&amp; npm run bootstrap</code> → plugin server <code>:4400</code>, MCP server <code>:4401</code>.</li>
+      <li>Load <code>http://localhost:4400/manifest.json</code> as a plugin in the Penpot tab and click "Connect to MCP server"; keep the plugin UI open.</li>
+      <li>Point the bb provider at <code>http://localhost:4401/mcp</code> (stdio-only clients: <code>npx -y mcp-remote http://localhost:4401/sse --allow-http</code>).</li>
+    </ol>
+  </div>
+</details>
+
+<details class="recipe">
+  <summary>D — Onlook <span class="pill">if the project is already React</span></summary>
+  <div class="body">
+    <p>Point Onlook at the project directory; humans tweak visually, bb agents edit the same files.
+    No bridge, no export — and no design artifact to keep in sync.</p>
+  </div>
+</details>
+
+<div class="note">
+  <strong>Keep this repo's tokens authoritative.</strong> <code>design-system/tokens.json</code> +
+  <code>tokens.css</code> already exist. OpenPencil's design variables generate CSS custom properties
+  (<code>var(--name)</code>) in code output; Brilliant's <code>Styles/default.ds</code> emits a resolved
+  <code>.gen.yaml</code> that Style Dictionary and build scripts read. Either way: this repo is the token
+  source of truth, the design tool is a consumer.
+</div>
+
+<h2><span class="n">06</span>Decision checklist</h2>
+<div class="check">
+  <div class="q"><b>Write or only read?</b><span>Does the agent need to author designs, or just consume them for code?</span></div>
+  <div class="q"><b>Diffable in PRs?</b><span>Must the design file be reviewable in git, or is a binary/service file fine?</span></div>
+  <div class="q"><b>Which provider runs the thread?</b><span>Codex/OpenCode/Claude Code can take MCP; pi needs the CLI or the file.</span></div>
+  <div class="q"><b>GUI in the loop?</b><span>Is a running app acceptable, or must the pipeline be headless in a worktree?</span></div>
+</div>
+
+<details class="src">
+  <summary>Source index (21 entries, primary sources only)</summary>
+  <ol>
+    <li><a href="https://github.com/ZSeven-W/openpencil">github.com/ZSeven-W/openpencil</a> — README, <code>crates/op-cli/src/usage.txt</code>, <code>crates/op-ai/src/chat_provider.rs</code>, <code>crates/op-chat-agent/src/provider_dial.rs</code>: licence, Linux releases, <code>.op</code> format, MCP stdio/HTTP, headless mode, codegen targets, local Ollama/vLLM support</li>
+    <li><a href="https://github.com/ZSeven-W/openpencil/releases">OpenPencil releases v0.8.4</a> — <code>.AppImage</code> / <code>.deb</code> / <code>op-cli-linux-*</code> artifacts</li>
+    <li><a href="https://op.zseven.tech/llms.txt">op.zseven.tech/llms.txt</a> — product summary, file format, MIT</li>
+    <li><a href="https://github.com/ZSeven-W/openpencil-skill">openpencil-skill</a> — agent skill for <code>op</code> / MCP</li>
+    <li><a href="https://brilliant.design/docs/getting-started/installation.mdx">Brilliant — installation</a> — macOS/Windows installers, sign-in</li>
+    <li><a href="https://brilliant.design/docs/agents/overview.mdx">Brilliant — use with AI agents</a> — MCP endpoint, web bridge, browser support, export formats, unlimited MCP on Free</li>
+    <li><a href="https://brilliant.design/docs/ai/providers-and-models.mdx">Brilliant — providers and models</a> — BYO keys, Claude Code/Codex CLI, custom OpenAI-compatible endpoints (LM Studio/Ollama/vLLM)</li>
+    <li><a href="https://brilliant.design/docs/workspace/canvases-and-files.mdx">Brilliant — canvases and files</a> — workspace-as-folder, <code>.bl</code> Blueprint, git workflows</li>
+    <li><a href="https://www.npmjs.com/package/@brilliant-hq/mcp">@brilliant-hq/mcp</a> — local stdio↔loopback bridge, UNLICENSED, v0.1.8 (2026-09-25)</li>
+    <li><a href="https://github.com/brilliant-hq/brilliant">brilliant-hq/brilliant</a> — <code>agent.md</code>, MCP tool surface, Blueprint objects, licence status</li>
+    <li><a href="https://github.com/penpot/penpot/tree/develop/mcp">Penpot MCP (main repo)</a> + archived <a href="https://github.com/penpot/penpot-mcp">penpot-mcp</a> — plugin + WebSocket architecture, ports 4400/4401, Node ≥ 22</li>
+    <li><a href="https://github.com/onlook-dev/onlook">onlook-dev/onlook</a> + v0.2.32 assets — code-native model, <code>.deb</code>/<code>.AppImage</code>, Next.js/Tailwind scope</li>
+    <li><a href="https://github.com/GraphiteEditor/Graphite">GraphiteEditor/Graphite</a> — licence, scope, no UI-code export</li>
+    <li><a href="https://icons8.com/lunacy">icons8.com/lunacy</a> — free editor, native Windows/macOS/Linux, Lunacy Cloud self-deploy, no agent surface</li>
+    <li><a href="https://github.com/evolus/pencil">evolus/pencil</a>, <a href="https://github.com/KlausSchaefers/quant-ux">quant-ux</a>, <a href="https://github.com/akiraux/Akira">Akira</a>, <a href="https://github.com/plasmicapp/plasmic">Plasmic</a> — adjacent tools compared</li>
+    <li><a href="https://developers.figma.com/docs/figma-mcp-server/">Figma MCP server docs</a> + <a href="https://github.com/GLips/Figma-Context-MCP">Figma-Context-MCP</a> — Figma baseline on Linux</li>
+    <li><code>bb provider list</code>, <code>bb guide providers</code>, pi docs <code>docs/models.md</code> — provider / MCP / local-model constraints inside bb</li>
+    <li><a href="https://help.figma.com/hc/en-us/articles/360041003114-Import-files-to-the-file-browser">Figma — import files to the file browser</a> — accepted types: <code>.sketch</code>, <code>.fig</code>, <code>.jam</code>, <code>.deck</code>, <code>.buzz</code>, <code>.site</code>, <code>.make</code>, PNG/JPG, <code>.pptx</code></li>
+    <li><a href="https://help.figma.com/hc/en-us/articles/360040030374-Copy-assets-between-design-tools">Figma — copy assets between design tools</a> — "Because SVG is a lossless format, we recommend importing and exporting assets as SVGs when moving content between design tools"</li>
+    <li><a href="https://www.figma.com/community/plugin/1159123024924461424">html.to.design</a> — HTML → editable Figma layers, the code-export route back into Figma</li>
+    <li>OpenPencil <code>crates/op-cli/src/usage.txt</code>, <code>crates/op-render-export/src/editor.rs</code>, <code>crates/op-editor-core/src/export_dialog_state.rs</code> — export formats: CLI/MCP accept <code>png</code>/<code>jpeg</code>/<code>webp</code>/<code>pdf</code> (SVG is desktop-dialog only); <code>op import:figma</code> is import-only. Verified on v0.8.4: <code>op export --format svg</code> → "unsupported export format", and a headless export needs <code>--item &lt;nodeId&gt;</code></li>
+  </ol>
+</details>
+
+<footer>
+  <span>HMTI Polinema · docs/research/04 · 2026-09-27</span>
+  <span>Evidence companion: <code>04-design-editor-options-agent-driven.md</code></span>
+</footer>
+
+</div>
+</body>
+</html>
