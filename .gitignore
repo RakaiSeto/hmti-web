@@ -3,6 +3,7 @@ node_modules/
 out/
 build/
 dist/
+dist-ssr/
 coverage/
 
 .env
@@ -20,8 +21,21 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 
 .turbo/
 .vercel/
 *.tsbuildinfo
 next-env.d.ts
+
+# TanStack Start / Cloudflare Workers
+.wrangler/
+.tanstack/
+.output/
+.vinxi/
+__unconfig*
+.dev.vars*
+
+# Generated: rebuilt by `vite dev` / `bun run cf-typegen`
+src/routeTree.gen.ts
+worker-configuration.d.ts

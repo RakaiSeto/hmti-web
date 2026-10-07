@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hmti-inventaris",
+  "compatibility_date": "2026-10-07",
+  "compatibility_flags": ["nodejs_compat"],
+  // Custom entrypoint: the framework's default exports only `fetch`, and BR07's cron
+  // trigger needs a `scheduled` export. See src/server.ts.
+  "main": "src/server.ts",
+  "observability": {
+    "enabled": true,
+  },
+  // BR07: the H-1 auto-cancel sweep. 17:00 UTC = 00:00 WIB, the plan's "daily at WIB
+  // midnight". Cloudflare cron is always UTC, so the offset is load-bearing.
+  "triggers": {
+    "crons": ["0 17 * * *"],
+  },
+  // Local dev uses a simulated D1 in .wrangler/state — the id below is a placeholder
+  // until `wrangler d1 create hmti-inventaris` mints the real one (decisions.md D1).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hmti-inventaris",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "drizzle",
+    },
+  ],
+  // Item photos (public) and surat (staff-only) share this bucket under different
+  // prefixes; the access rule lives in the Worker, not the bucket (NFR03).
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "hmti-inventaris-files",
+    },
+  ],
+  // Cron triggers land with BR07 (Phase 8). The default TanStack Start entrypoint has
+  // no `scheduled` export, so a custom server entry is added at that point — adding one
+  // now would be an unverified moving part with nothing to run.
+}

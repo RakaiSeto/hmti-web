@@ -8,12 +8,15 @@ mutation from here on records who did what to which data when (FR21).
 ## Issues
 
 ### INV-04 — Login/logout for admin and PJ (FR07, NFR01)
-Session-cookie auth against the D1 `sessions` table. Passwords hashed with scrypt via
-`@noble/hashes` (per-password random salt; Workers can't run argon2/bcrypt natives).
-HTTP-only cookie, one `requireAuth()` / `requireRole()` guard applied per server
-function, login page styled from the app kit. Logout destroys the session row.
-**Accepts:** unauthenticated access to any staff route redirects to login; a PJ can
-log in and out; hashed password round-trips; logout kills the row.
+**Better Auth is already wired** (Phase 0: `src/lib/auth.ts`, `src/routes/api/auth/$.ts`,
+`disableSignUp`, `peran` non-client-writable). This issue is the UI and the guard, not the
+auth machinery: a login form on `/masuk` calling `authClient.signIn.email`, logout, and
+one `requireRole()` guard applied per server function. There is no scrypt code to write
+and no `sessions` table to hand-roll — decisions.md D4 replaced that approach.
+`requireRole('admin')` stays the single guard; role checks are never scattered.
+**Accepts:** unauthenticated access to any staff route redirects to login; a PJ can log in
+and out; a PJ hitting an admin-only server function gets 403 from the server, not just
+hidden UI; logout invalidates the session.
 
 ### INV-05 — Account management with roles (FR08)
 Admin CRUD over PJ inventaris accounts: create, edit name, reset password, delete.

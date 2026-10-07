@@ -1,0 +1,17 @@
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+
+# Not the app's to reformat: the design system and the research/plan docs predate it,
+# and churning them would bury real changes in formatting noise.
+design-system/
+docs/
+assets/
+research-shots/
+
+# Generated
+src/routeTree.gen.ts
+worker-configuration.d.ts
+drizzle/
+.amp/

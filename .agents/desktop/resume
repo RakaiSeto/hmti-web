@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Orb Desktop startup for this repo.
+#
+# The Desktop tab shows whatever this script starts. We start Chrome through the
+# orb's own wrapper (/opt/amp-desktop/google-chrome) so it keeps the shared
+# profile and the remote-debugging port agent-browser attaches to with
+# `amp orb desktop ensure` + `agent-browser --cdp 9222`, then add the flags
+# brilliant.design needs: its canvas renders on WebGPU, and a software-only orb
+# exposes no adapter to WebGPU unless CPU adapters are explicitly allowed.
+#
+# Written by the Amp thread that set this up; see the thread for the probes.
+set -euo pipefail
+
+exec /opt/amp-desktop/google-chrome \
+    --start-maximized \
+    --enable-unsafe-webgpu \
+    --enable-features=Vulkan \
+    --use-angle=vulkan \
+    --use-vulkan=swiftshader \
+    --use-webgpu-adapter=swiftshader \
+    --enable-unsafe-swiftshader \
+    --disable-features=LocalNetworkAccessChecks \
+    "https://brilliant.design/nimble-guava/hmti-web/main-2"

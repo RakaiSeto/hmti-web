@@ -21,10 +21,16 @@ server-side with messages the form surfaces.
 On submit, server re-runs the availability helper per line for the requested range.
 If **any** line is short, the whole request is rejected (no partial approval — overview
 §4) with a per-line reason list. Valid requests insert atomically and get status
-`Diajuan`. Guard against the two-tabs race: the availability re-check runs inside the
-insert transaction.
+`Diajukan`. Guard against the two-tabs race: the availability re-check is folded into the
+insert statement, not run before it.
 **Accepts:** tests cover all-available, one-line-short, same-item-two-requests-raced;
 the raced case lets exactly one request through.
+
+**Implementation constraint (decisions.md §1a/§7d).** D1 has no interactive
+transactions, so this cannot be written as *read free qty → branch → insert*. The
+transactional part has to be one statement that carries the condition itself
+(`INSERT … SELECT … WHERE <free qty> >= ?`, then inspect `meta.changes`), or an optimistic
+retry loop. Getting this wrong is how the race survives.
 
 ### INV-14 — Tracking code & status lookup (FR05, FR06)
 Unique code `PINJ-YYYYMM-XXXX` (4 random alphanumerics — see overview §5 rationale)

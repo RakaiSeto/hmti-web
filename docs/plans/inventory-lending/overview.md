@@ -36,9 +36,12 @@ HMTI internal "member" role, multi-level approval.
 ## 3. Constraints
 
 - **Language:** Bahasa Indonesia UI (`docs/app-design-plan.md` locked decision 4).
-- **Styling:** consume `design-system/tokens.css` + `app.css` directly; do not introduce
-  a second styling system. Light mode only, per user decision — the dark tokens stay
-  in the design system but the app never sets `data-theme`.
+- **Styling:** Tailwind v4, with the design's tokens in `src/styles/tokens.css`
+  (`@theme`), generated from the Brilliant canvas by `tools/gen-tokens.py`. The app does
+  not consume `design-system/tokens.css` or `app.css` — see
+  [decisions.md](decisions.md) D5/D6. Light mode only for now, but all three of the
+  design's modes (light / dark / high-contrast) are already in the token file, so the
+  toggle is a `data-theme` attribute rather than a re-design.
 - **NFR07:** widely-used stack, documented, maintainable by the next cabinet. No exotic
   dependencies.
 - **NFR09:** Telegram token and group ID live in server env vars only; never committed.
@@ -109,12 +112,15 @@ no UI to edit or delete it.
 | File handling (NFR03) | R2 private bucket, served through authed Worker route | Local disk or S3 | External blob store needed |
 
 **Choice: A (TanStack Start + TypeScript + Cloudflare Workers/D1/R2, Drizzle).** Full
-serverless setup: one Worker (SSR + cron trigger via custom server entrypoint), D1 for
-data, private R2 bucket for files, WAF rate limiting + Turnstile, `hmti.rakaiseto.com`.
-Auth notes: opaque session tokens in a D1 `sessions` table (revocation by FK cascade),
-scrypt password hashing via `@noble/hashes` (argon2 impractical on Workers), Telegram
-sends via a queue table drained in-transaction, D1 Time Travel + monthly D1→R2 export
-for backups. Grilled and settled with the user 2026-10-05.
+serverless setup: one Worker (SSR + cron trigger via custom server entrypoint, added in
+Phase 8), D1 for data, private R2 bucket for files, WAF rate limiting + Turnstile,
+`hmti.rakaiseto.com`. Auth: **Better Auth** on the Drizzle adapter (`tanstackStartCookies`,
+no public sign-up, `peran` not client-writable) — this replaces the hand-rolled
+sessions/scrypt approach originally chosen when argon2 on Workers looked impractical; see
+[decisions.md](decisions.md) D4. Telegram sends via a queue table drained in-transaction
+(deferred with Phase 6), D1 Time Travel + monthly D1→R2 export for backups. Grilled and
+settled with the user 2026-10-05; the remaining decisions settled 2026-10-06 in
+[decisions.md](decisions.md).
 
 ## 7. Phases
 
@@ -122,28 +128,48 @@ Infra and shared types land first; each phase ends shippable.
 
 | Phase | Delivers | Issues | Requirement coverage |
 | --- | --- | --- | --- |
-| [1 — Scaffold & data model](phase-1-scaffold-data-model.md) | TanStack Start + D1/R2 scaffold, schema, migrations, availability helper | INV-01…03 | §7 data needs, BR01/BR08 engine |
+| [0 — Tokens & scaffold](decisions.md) | App scaffold on Bun + TanStack Start, D1/Drizzle/Better Auth wired, tokens generated from the Brilliant canvas, CI. **Landed.** | INV-00 | foundation for all |
+| [1 — Scaffold & data model](phase-1-scaffold-data-model.md) | Domain schema, migrations, availability helper | INV-01…03 | §7 data needs, BR01/BR08 engine |
 | [2 — Auth, roles & audit log](phase-2-auth-audit.md) | Login, admin/PJ accounts, role guards, activity log | INV-04…06 | FR07, FR08, FR21, NFR01 |
 | [3 — Inventory admin](phase-3-inventory-admin.md) | Category + item CRUD, photos | INV-07…09 | FR09, FR10 |
 | [4 — Public catalog & calendar](phase-4-catalog-availability.md) | Item list, detail, availability calendar | INV-10…11 | FR01, FR02 |
 | [5 — Request & tracking](phase-5-request-tracking.md) | Request form, conflict check, code, status lookup | INV-12…14 | FR03–FR06, NFR02, NFR08 |
-| [6 — Telegram bot](phase-6-telegram.md) | Auto-notification on new request | INV-15 | FR19, NFR09 |
+| [6 — Telegram bot](phase-6-telegram.md) | Auto-notification on new request — **deferred**, FR19 unmet until it lands (decisions.md D13) | INV-15 | FR19, NFR09 |
 | [7 — Review & letters](phase-7-review-letters.md) | Admin queue, approve/reject, letter upload+verify | INV-16…18 | FR11–FR13, BR03, BR06, NFR03 |
 | [8 — Handover & return](phase-8-handover-return.md) | Handover/return records, lifecycle rules, H-1 cancel | INV-19…21 | FR14–FR16, BR02/BR04/BR05/BR07 |
 | [9 — Dashboard & reports](phase-9-dashboard-reports.md) | Summary dashboard, history + stock export | INV-22…23 | FR17, FR18 |
 | [10 — Hardening & deploy](phase-10-hardening-deploy.md) | Mobile polish, spam defense, docs, deployment | INV-24…26 | NFR04–NFR07 |
 
+**First shippable: Phases 1–5** (decisions.md D18). Phases 7–8 close the physical loop
+next; 9 and 10 after.
+
+**Implementation state at this commit.** Phases 1–5 and 7–9 are built: the app runs the
+whole loop from request to return, and the state below is verified rather than claimed —
+29 unit tests, clean typecheck/lint/build, and a browser walkthrough of
+submit → approve → letter → handover → return. Phase 6 is deferred (D13), so nothing is
+announced anywhere. Phase 10 is partly done: CI and the plan documents are in; mobile
+polish, spam defense (Turnstile, rate limiting) and the production deploy are not.
+
 [Verification strategy](testing.md) applies per phase.
 
 ## 8. Open decisions (do not block; defaults chosen)
 
-1. ~~**Stack**~~ — settled 2026-10-05 via grilling: TanStack Start + Cloudflare.
+All 18 technical decisions are settled — see [decisions.md](decisions.md). What remains
+here are the ones with product consequences:
+
+1. ~~**Stack**~~ — settled: TanStack Start + Cloudflare Workers/D1/R2.
 2. **BR07 auto-cancel** — implemented as a real status write to `Dibatalkan` at H-1
-   (on letter *receipt*, per BR02 wording), Telegram message announces it, admin UI
-   keeps a re-approve action on Dibatalkan requests.
-3. ~~**Hosting**~~ — settled: Cloudflare Workers, `hmti.rakaiseto.com` day one.
+   (on letter *receipt*, per BR02 wording), and the admin UI keeps a re-approve action on
+   Dibatalkan requests. **The Telegram announcement of the cancellation is part of the
+   deferred Phase 6** (decisions.md D13), so when BR07 ships the cancellation happens
+   silently — the request simply disappears from the pending queue. Worth revisiting
+   before Phase 8.
+3. ~~**Hosting**~~ — settled: Cloudflare Workers, `hmti.rakaiseto.com` day one, on our
+   account (decisions.md D12 records the handover risk).
 4. **Late policy** — what actually happens on Terlambat is unspecified beyond the flag;
    Phase 9 reports it, no enforcement designed.
+5. **Availability boundary rule** — return day free, or blocked? Recommended: free.
+   Needs pengurus sign-off; see decisions.md D9 for the worked example.
 
 ## 9. Implementation guidance
 

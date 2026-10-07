@@ -1,0 +1,183 @@
+/* ==========================================================================
+   HMTI Polinema — app tokens
+
+   GENERATED from the values the Brilliant design (canvas main-2.bl,
+   project nimble-guava/hmti-web) actually uses. Do not hand-edit without
+   re-running tools/gen-tokens.py, or the file drifts from the canvas.
+
+   Each line names the design token it came from, so a design change is
+   a diff here. Tailwind v4 reads @theme; the [data-theme] blocks below
+   override the same variables, which is how the design's dark and
+   high-contrast values ship.
+
+   NOT here: the design's `indigo`/`#7C6BF0` dashed outlines and the
+   orange `tertiary.mid` on Kit NavIcons. Those are Brilliant's component-
+   boundary guides and unset fills, not design content.
+
+   CONTRAST — the one rule that matters, same shape as the design system's:
+     --color-brand #EEC643 as TEXT on a light surface = 1.44:1. Unreadable.
+     It is a FILL. Pair it with --color-brand-ink (#0A0A0A) = 12.06:1.
+     --color-ink (#011638) is the dark surface; text on it passes AA.
+   Verify any new pair before shipping it; do not eyeball.
+   ========================================================================== */
+
+@import 'tailwindcss';
+
+@theme {
+  /* --- typography ------------------------------------------------------ */
+  --font-sans:
+    'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* The design's type scale overrides Tailwind's: lg/xl/2xl/4xl differ, and
+     the design's md (16px) is Tailwind's `base`. */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --text-4xl: 40px;
+
+  --leading-tight: 1.2;
+  --leading-base: 1.21;
+  --leading-normal: 1.22;
+  --leading-snug: 1.23;
+  --leading-relaxed: 1.25;
+  --tracking-loose: 1.2px;
+
+  /* --- spacing and radius: NOT overridden -------------------------------
+     The design's scales are exactly Tailwind's defaults, so they are used
+     through the stock utilities rather than redefined. Redefining them
+     under these names breaks Tailwind's own size namespace: a
+     `--spacing-2xl` shadows `--container-2xl`, which silently collapses
+     `max-w-2xl` to 32px.
+
+       design $spacing.*   Tailwind utility
+         xs       4px         p-1 / gap-1 / m-1
+         sm       8px         p-2 / gap-2 / m-2
+         md       12px        p-3 / gap-3 / m-3
+         lg       16px        p-4 / gap-4 / m-4
+         xl       24px        p-6 / gap-6 / m-6
+         2xl      32px        p-8 / gap-8 / m-8
+       + overlap.2xl 32px  → -mt-8 style negative offsets (see 23 · Dasbor PJ)
+
+       design $radius.*    Tailwind utility
+         xs       2px          rounded-xs
+         sm       4px          rounded-sm
+         md       6px          rounded-md
+         lg       8px          rounded-lg
+         xl       12px         rounded-xl
+         2xl      16px         rounded-2xl
+         full     9999px       rounded-full
+  */
+
+  /* --- shadows (design shadow pairs) ------------------------------------ */
+  --shadow-card: 0 1px 2px rgb(20 20 20 / 0.1), 0 8px 24px rgb(20 20 20 / 0.2);
+  --shadow-modal: 0 16px 48px rgb(20 20 20 / 0.2);
+
+  /* --- colour ----------------------------------------------------------- */
+  --color-brand: #eec643; /* primary.mid */
+  --color-brand-firm: #ae8c00; /* primary.firm */
+  --color-brand-soft: #eee0b6; /* primary.soft */
+  --color-brand-hint: #f7f5ee; /* primary.hint */
+  --color-accent: #0d21a1; /* secondary.mid */
+  --color-accent-firm: #0b1f84; /* secondary.firm */
+  --color-accent-soft: #7393de; /* secondary.soft */
+  --color-ink: #011638; /* tertiary.mid */
+  --color-ink-firm: #010e26; /* tertiary.firm */
+  --color-neutral-intense: #292929; /* neutral.intense */
+  --color-neutral-bold: #454545; /* neutral.bold */
+  --color-neutral-mid: #737373; /* neutral.mid */
+  --color-neutral-soft: #c6c6c6; /* neutral.soft */
+  --color-neutral-subtle: #e1e1e1; /* neutral.subtle */
+  --color-neutral-hint: #eff0f2; /* neutral.hint */
+  --color-surface-container: #f0f0f0; /* color.surface.container */
+  --color-surface: #eff0f2; /* color.surface */
+  --color-text: #454545; /* color.text.primary */
+  --color-text-soft: #575757; /* color.text.secondary */
+  --color-text-disabled: #c6c6c6; /* color.text.disabled */
+  --color-line: #c6c6c6; /* color.outline */
+  --color-line-soft: #e1e1e1; /* color.outline.variant */
+  --color-success: #059669; /* color.success */
+  --color-success-container: #f3f6f4; /* color.success.container */
+  --color-success-text: #00583c; /* color.success.text */
+  --color-warning: #b27100; /* color.warning */
+  --color-warning-container: #f9f4f0; /* color.warning.container */
+  --color-error: #e11d48; /* color.error */
+  --color-error-container: #faf3f3; /* color.error.container */
+  --color-info: #0284c7; /* color.info */
+  --color-info-container: #f2f6f8; /* color.info.container */
+  --color-shadow: #141414; /* color.shadow */
+}
+
+/* Dark — values from the design's dark mode. */
+[data-theme='dark'] {
+  --color-brand-firm: #eee0b6;
+  --color-brand-soft: #ae8c00;
+  --color-brand-hint: #403200;
+  --color-accent-firm: #7393de;
+  --color-accent-soft: #0b1f84;
+  --color-ink-firm: #6882a7;
+  --color-neutral-intense: #eff0f2;
+  --color-neutral-bold: #e1e1e1;
+  --color-neutral-soft: #575757;
+  --color-neutral-subtle: #454545;
+  --color-neutral-hint: #292929;
+  --color-surface-container: #373737;
+  --color-surface: #292929;
+  --color-text: #e1e1e1;
+  --color-text-soft: #c6c6c6;
+  --color-text-disabled: #575757;
+  --color-line: #575757;
+  --color-line-soft: #454545;
+  --color-success: #9bc5b0;
+  --color-success-container: #003421;
+  --color-success-text: #c1d8cc;
+  --color-warning: #f0cea9;
+  --color-warning-container: #462a00;
+  --color-error: #efa0a2;
+  --color-error-container: #540214;
+  --color-info: #98bedc;
+  --color-info-container: #002d48;
+}
+
+/* High contrast — values from the design's high contrast mode. */
+[data-contrast='high'] {
+  --color-brand-firm: #826800;
+  --color-brand-soft: #f1e8d0;
+  --color-accent-firm: #0b1f6f;
+  --color-accent-soft: #a7bbe8;
+  --color-ink-firm: #01091a;
+  --color-neutral-bold: #373737;
+  --color-neutral-soft: #e1e1e1;
+  --color-neutral-subtle: #f0f0f0;
+  --color-surface-container: #eff0f2;
+  --color-text: #373737;
+  --color-text-soft: #454545;
+  --color-text-disabled: #e1e1e1;
+  --color-line: #e1e1e1;
+  --color-line-soft: #f0f0f0;
+  --color-success-text: #00472f;
+  --color-warning: #875400;
+}
+
+/* The design defines no dark value for primary.mid, secondary.mid,
+   tertiary.mid, neutral.mid or color.shadow: those stay fixed in dark mode. */
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  html[data-theme='dark'] {
+    color-scheme: dark;
+  }
+  body {
+    /* The page is `surface.container`; cards are `surface` on top of it. */
+    background-color: var(--color-surface-container);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}

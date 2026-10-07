@@ -8,31 +8,40 @@ everything else consumes.
 
 ## Issues
 
-### INV-01 — Scaffold TanStack Start + Cloudflare bindings
-Scaffold per the stack decision in overview §6: TanStack Start + TypeScript, deployed
-as one Worker. `wrangler.jsonc` with D1 + R2 bindings, `getPlatformProxy()` for fully
-local dev, `tokens.css` + `app.css` wired in the root layout (dark mode scrapped).
-Custom server entrypoint set up from day one so the cron trigger has a home (INV-21
-needs it). Secrets via Workers env vars only (NFR09 starts here). Ship the public
-shell pages (`/`, `/lacak`) as placeholders using the app kit.
-**Accepts:** `npm run dev` serves the shell against local D1/R2; typecheck and lint
-pass; `wrangler deploy` works to `*.workers.dev`; no secret in the repo.
+### INV-01 — Scaffold TanStack Start + Cloudflare bindings — **done in Phase 0**
+Landed: TanStack Start + TypeScript on Bun, deployed as one Worker. `wrangler.jsonc` with
+D1 + R2 bindings, `@cloudflare/vite-plugin` for fully local dev, Better Auth wired on the
+Drizzle/D1 adapter, tokens generated from the Brilliant canvas into
+`src/styles/tokens.css`, and CI running route-tree generation + `wrangler types` +
+typecheck + lint + tests. Secrets via Workers env vars only (NFR09 starts here). Public
+shell pages (`/`, `/lacak`, `/masuk`) exist as placeholders using the design's tokens.
+What is **not** done and moves to this phase: the domain schema and its migrations (INV-02).
+The custom server entrypoint for the cron trigger moves to Phase 8 — nothing needs a
+`scheduled` export until BR07 (decisions.md D13).
+**Accepts:** `bun run dev` serves the shell against local D1/R2; typecheck and lint pass;
+`wrangler deploy` works to `*.workers.dev`; no secret in the repo.
 
 ### INV-02 — Schema + migrations for all nine entities
-Entities from requirements §7: `admin`, `kategori`, `barang`, `pengajuan`,
-`pengajuan_barang`, `surat`, `serah_terima`, `pengembalian`, `log_aktivitas`, plus
-`sessions` for auth. Key shapes (one-line sketch):
-- `admin(nama, email/username UNIQUE, password_hash, peran IN ('admin','pj_inventaris'))`
-- `sessions(token PK, admin_id FK CASCADE, expires_at)` — revocation by cascade
+**Auth tables already exist** — Phase 0 created Better Auth's `user`, `session`,
+`account` and `verification` (with `peran` on `user`), and applied them as
+`drizzle/0000_*.sql`. There is no separate `admin` table and no `password_hash` column to
+write: Better Auth owns credentials. This phase adds the eight domain tables.
+
+Entities from requirements §7: `kategori`, `barang`, `pengajuan`, `pengajuan_barang`,
+`surat`, `serah_terima`, `pengembalian`, `log_aktivitas`. Key shapes (one-line sketch):
+- `kategori(nama UNIQUE)`
+- `barang(nama, kategori_id FK, jumlah, kondisi, lokasi, foto_path)`
 - `pengajuan(kode UNIQUE, organisasi, penanggung_jawab, kontak, tgl_pinjam, tgl_kembali, keperluan, status, alasan_penolakan)`
 - `pengajuan_barang(pengajuan_id, barang_id, jumlah)` — the multi-item line table (BR08)
 - `surat(pengajuan_id, file_path, status_verifikasi, diunggah_oleh, waktu)`
 - `log_aktivitas(pengguna_id, aksi, entitas, entitas_id, waktu)` — append-only, no delete path ever coded
-Status as an enum exactly matching overview §5. Seed script: realistic fakes, one
-admin (the FR08 "akun admin pertama dibuat sekali saat sistem dipasang"), a few
-kategori/barang.
+`tgl_pinjam` / `tgl_kembali` are `YYYY-MM-DD` TEXT, never timestamps (decisions.md D10).
+Status as an enum exactly matching overview §5. Seed script: realistic fakes, one admin
+(the FR08 "akun admin pertama dibuat sekali saat sistem dipasang"), a few
+kategori/barang. Note `disableSignUp` is on, so the seed inserts the first account
+directly rather than calling a sign-up endpoint.
 **Accepts:** migrations run clean against a fresh local D1; seed produces browsable
-data; cascade delete of an admin removes their sessions.
+data; deleting a user cascades their sessions (already true from Phase 0).
 
 ### INV-03 — Availability helper (BR01 + BR08 engine)
 One query helper (Drizzle): free qty for `barang` over a date range =
