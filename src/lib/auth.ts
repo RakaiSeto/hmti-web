@@ -17,9 +17,21 @@ import { tanstackStartCookies } from 'better-auth/tanstack-start'
 
 import { db } from '#/db'
 import * as schema from '#/db/schema'
+import { hostDiizinkan } from '#/lib/origins'
 
 export const auth = betterAuth({
-  baseURL: env.BETTER_AUTH_URL,
+  // Resolved per request rather than pinned to one string, so the same build serves every
+  // host it is reached on: the real domain, localhost, and the orb's portal proxy. A
+  // pinned base URL rejects the portal with INVALID_ORIGIN and breaks sign-in there —
+  // see lib/origins.ts for what is allowed and why.
+  baseURL: {
+    allowedHosts: hostDiizinkan(
+      env.BETTER_AUTH_URL,
+      env.BETTER_AUTH_ALLOWED_HOSTS,
+    ),
+    protocol: 'auto',
+    fallback: env.BETTER_AUTH_URL,
+  },
   secret: env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, { provider: 'sqlite', schema }),
   emailAndPassword: {

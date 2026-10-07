@@ -27,9 +27,16 @@ function Masuk() {
     const { error: err } = await authClient.signIn.email({ email, password })
     setLoading(false)
     if (err) {
-      // Deliberately one message for every failure: distinguishing "no such account"
-      // from "wrong password" tells an attacker which emails are real.
-      setError('Email atau kata sandi salah.')
+      // 401 is the credentials case, and it is deliberately one message for both "no such
+      // account" and "wrong password": distinguishing them tells an attacker which emails
+      // are real. Anything else is a fault on our side — a 403 invalid origin, a 5xx — and
+      // dressing that up as a wrong password is how a misconfigured auth origin stayed
+      // invisible until someone reported "cannot log in".
+      setError(
+        err.status === 401
+          ? 'Email atau kata sandi salah.'
+          : 'Terjadi kesalahan pada server. Coba lagi, atau hubungi admin bila berlanjut.',
+      )
       return
     }
     await navigate({ to: '/admin/dasbor' })

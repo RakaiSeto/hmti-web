@@ -14,6 +14,12 @@ declare namespace Cloudflare {
     BETTER_AUTH_SECRET: string
     /** Public origin, e.g. https://hmti.rakaiseto.com. */
     BETTER_AUTH_URL: string
+    /**
+     * Extra host patterns the auth API accepts, comma-separated — preview deployments and
+     * staging domains. Optional: production is covered by BETTER_AUTH_URL, and local dev
+     * by the orb portal pattern in lib/origins.ts.
+     */
+    BETTER_AUTH_ALLOWED_HOSTS?: string
   }
 }
 
