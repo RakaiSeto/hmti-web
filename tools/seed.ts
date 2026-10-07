@@ -265,8 +265,16 @@ async function main() {
     keperluan: string
     status: string
     alasan?: string
+    /** Pin a tracking code instead of minting a random one — the /lacak demo code. */
+    kode?: string
     lines: Array<[string, number]>
   }
+
+  // A stable code for the first request, so /lacak always has something to look up
+  // without grepping the seeded database for a random PINJ- code. Same shape as
+  // `newKode`, but the tail is a fixed marker rather than random.
+  const bulan = new Date().toISOString().slice(0, 7).replace('-', '')
+  const kodeDemo = `PINJ-${bulan}-DEMO`
 
   const specs: Spec[] = [
     {
@@ -277,6 +285,7 @@ async function main() {
       to: 5,
       keperluan: 'Seminar nasional',
       status: 'Diajukan',
+      kode: kodeDemo,
       lines: [
         ['Proyektor Epson EB-X500', 2],
         ['Kamera Canon EOS M50', 1],
@@ -411,7 +420,7 @@ async function main() {
   const idByOrg = new Map<string, string>()
   for (const s of specs) {
     const id = newId()
-    const kode = newKode()
+    const kode = s.kode ?? newKode()
     kodeById.set(kode, id)
     idByOrg.set(s.organisasi, id)
     insPengajuan.run(
@@ -562,6 +571,7 @@ async function main() {
   console.log('Seeded:', counts)
   console.log('  admin@hmti.polinema.ac.id / admin123      (admin)')
   console.log('  pj@hmti.polinema.ac.id    / pj123456      (pj_inventaris)')
+  console.log(`  /lacak demo code: ${kodeDemo}   (Workshop Robotika, Diajukan)`)
 }
 
 await main()
