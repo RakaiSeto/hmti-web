@@ -39,3 +39,6 @@ __unconfig*
 # Generated: rebuilt by `vite dev` / `bun run cf-typegen`
 src/routeTree.gen.ts
 worker-configuration.d.ts
+
+# Generated portal state (see .amp/services.yaml)
+.amp/portals/

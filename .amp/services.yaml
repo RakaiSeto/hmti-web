@@ -1,0 +1,16 @@
+# Dev services for Amp orbs. Run `amp orb services ensure` from the repository root.
+#
+# The Vite dev server is the whole app: TanStack Start SSR runs inside the Cloudflare Vite
+# plugin's local workerd, with the simulated D1/R2 under .wrangler/state. It listens on the
+# port Amp hands it, so the portal proxy can reach it.
+services:
+  web:
+    command: ./node_modules/.bin/vite dev --host 0.0.0.0 --port "$PORT"
+    health: /
+    portal:
+      title: HMTI Inventaris
+      description: Seeded dev data — staff login admin@hmti.polinema.ac.id / admin123.
+    portals:
+      - url: /lacak
+        title: Cek Status
+        description: Paste the seeded demo code (printed by `bun run db:seed`, e.g. PINJ-202610-DEMO).
