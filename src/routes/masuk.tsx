@@ -89,6 +89,7 @@ function Masuk() {
                 className="min-w-0 flex-1 bg-transparent text-sm text-text outline-none placeholder:text-neutral-mid"
                 type="email"
                 autoComplete="username"
+                placeholder="nama@hmti.polinema.ac.id"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -110,6 +111,7 @@ function Masuk() {
                 className="min-w-0 flex-1 bg-transparent text-sm text-text outline-none placeholder:text-neutral-mid"
                 type={lihatSandi ? 'text' : 'password'}
                 autoComplete="current-password"
+                placeholder="Masukkan kata sandi"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
