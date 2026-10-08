@@ -1,48 +1,76 @@
 import { createFileRoute } from '@tanstack/react-router'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useState } from 'react'
 
 import { STATUS_PENGAJUAN } from '../../../db/schema'
 import { formatTanggal } from '../../../lib/dates'
 import { keCsv } from '../../../lib/csv'
-import { laporanPeminjaman, rekapStok } from '../../../server/admin'
-import { StatusBadge } from '../../../components/StatusBadge'
 import {
-  BarisTabel,
-  Card,
-  DataTable,
-  EmptyState,
+  eksporPeminjaman,
+  eksporStok,
+  laporanPeminjaman,
+  rekapStok,
+} from '../../../server/admin'
+import type { BarisLaporan, BarisStok } from '../../../server/admin'
+import { daftarKategoriRef } from '../../../server/barang'
+import { StatusBadge } from '../../../components/StatusBadge'
+import { TabelData } from '../../../components/TabelData'
+import {
+  KotakCari,
   PageHeader,
-  Sel,
   TombolSekunder,
   TombolUtama,
   inputCls,
 } from '../../../components/ui'
+import type { ArahUrut } from '../../../lib/tabel'
+import { PER_HALAMAN } from '../../../lib/tabel'
+import { useDaftar } from '../../../lib/useDaftar'
+
+interface ParamsRiwayat {
+  dari: string
+  sampai: string
+  status: string
+  q: string
+  sort: string
+  dir: ArahUrut
+  halaman: number
+  perHalaman: number
+}
+
+interface ParamsStok {
+  q: string
+  kategoriId: string
+  sort: string
+  dir: ArahUrut
+  halaman: number
+  perHalaman: number
+}
+
+const AWAL_RIWAYAT: ParamsRiwayat = {
+  dari: '',
+  sampai: '',
+  status: 'semua',
+  q: '',
+  sort: '',
+  dir: 'asc',
+  halaman: 1,
+  perHalaman: PER_HALAMAN,
+}
+
+const AWAL_STOK: ParamsStok = {
+  q: '',
+  kategoriId: '',
+  sort: '',
+  dir: 'asc',
+  halaman: 1,
+  perHalaman: PER_HALAMAN,
+}
 
 export const Route = createFileRoute('/admin/laporan/')({
-  validateSearch: (
-    s: Record<string, unknown>,
-  ): {
-    dari?: string
-    sampai?: string
-    status?: string
-    tab?: string
-  } => ({
-    dari: typeof s.dari === 'string' ? s.dari : undefined,
-    sampai: typeof s.sampai === 'string' ? s.sampai : undefined,
-    status: typeof s.status === 'string' ? s.status : undefined,
-    tab: typeof s.tab === 'string' ? s.tab : undefined,
-  }),
-  loaderDeps: ({ search }) => ({
-    dari: search.dari ?? '',
-    sampai: search.sampai ?? '',
-    status: search.status ?? 'semua',
-    tab: search.tab ?? 'riwayat',
-  }),
-  loader: async ({ deps }) => ({
-    riwayat: await laporanPeminjaman({
-      data: { dari: deps.dari, sampai: deps.sampai, status: deps.status },
-    }),
-    stok: deps.tab === 'stok' ? await rekapStok() : [],
+  loader: async () => ({
+    riwayat: await laporanPeminjaman({ data: AWAL_RIWAYAT }),
+    stok: await rekapStok({ data: AWAL_STOK }),
+    kategori: await daftarKategoriRef(),
   }),
   component: Laporan,
 })
@@ -51,17 +79,25 @@ export const Route = createFileRoute('/admin/laporan/')({
  * 15 · Laporan (FR18). Both roles.
  *
  * Export is CSV (UTF-8 with BOM) plus print-to-PDF, not XLSX: it needs no dependency, and
- * the BOM is what stops Excel mangling Indonesian characters (decisions.md D14).
+ * the BOM is what stops Excel mangling Indonesian characters (decisions.md D14). The
+ * table shows one page; the export calls a separate unpaginated function so the file
+ * always holds every filtered row.
  */
 function Laporan() {
-  const { riwayat, stok } = Route.useLoaderData()
-  const search = Route.useSearch()
-  const [dari, setDari] = useState(search.dari ?? '')
-  const [sampai, setSampai] = useState(search.sampai ?? '')
+  const awal = Route.useLoaderData()
+  const [tab, setTab] = useState<'riwayat' | 'stok'>('riwayat')
+  const riwayat = useDaftar(laporanPeminjaman, awal.riwayat, AWAL_RIWAYAT)
+  const stok = useDaftar(rekapStok, awal.stok, AWAL_STOK)
 
-  const tab = search.tab === 'stok' ? 'stok' : 'riwayat'
-
-  function unduhRiwayat() {
+  async function unduhRiwayat() {
+    const semua = await eksporPeminjaman({
+      data: {
+        dari: riwayat.params.dari,
+        sampai: riwayat.params.sampai,
+        status: riwayat.params.status,
+        q: riwayat.params.q,
+      },
+    })
     const csv = keCsv(
       [
         'Kode',
@@ -73,7 +109,7 @@ function Laporan() {
         'Barang',
         'Status',
       ],
-      riwayat.map((r) => [
+      semua.map((r) => [
         r.kode,
         r.organisasi,
         r.penanggungJawab,
@@ -87,7 +123,10 @@ function Laporan() {
     unduh(csv, `laporan-peminjaman-${Date.now()}.csv`)
   }
 
-  function unduhStok() {
+  async function unduhStok() {
+    const semua = await eksporStok({
+      data: { q: stok.params.q, kategoriId: stok.params.kategoriId },
+    })
     const csv = keCsv(
       [
         'Barang',
@@ -97,7 +136,7 @@ function Laporan() {
         'Sedang dipinjam',
         'Rusak/hilang',
       ],
-      stok.map((s) => [
+      semua.map((s) => [
         s.nama,
         s.kategori,
         s.jumlah,
@@ -109,6 +148,114 @@ function Laporan() {
     unduh(csv, `rekap-stok-${Date.now()}.csv`)
   }
 
+  const kolomRiwayat: ColumnDef<BarisLaporan, unknown>[] = [
+    {
+      id: 'kode',
+      accessorFn: (r) => r.kode,
+      header: 'Kode',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs font-semibold whitespace-nowrap">
+          {row.original.kode}
+        </span>
+      ),
+    },
+    {
+      id: 'organisasi',
+      accessorFn: (r) => r.organisasi,
+      header: 'Organisasi',
+      cell: ({ row }) => (
+        <>
+          <span className="font-semibold text-neutral-intense">
+            {row.original.organisasi}
+          </span>
+          <span className="block text-xs font-medium text-text-soft">
+            {row.original.penanggungJawab}
+          </span>
+        </>
+      ),
+    },
+    {
+      id: 'pinjam',
+      accessorFn: (r) => r.tglPinjam,
+      header: 'Periode',
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap text-xs">
+          {formatTanggal(row.original.tglPinjam)} →{' '}
+          {formatTanggal(row.original.tglKembali)}
+        </span>
+      ),
+    },
+    {
+      id: 'barang',
+      header: 'Barang',
+      enableSorting: false,
+      cell: ({ row }) => <span className="text-xs">{row.original.barang}</span>,
+    },
+    {
+      id: 'status',
+      accessorFn: (r) => r.status,
+      header: 'Status',
+      cell: ({ row }) => <StatusBadge status={row.original.status as never} />,
+    },
+  ]
+
+  const kolomStok: ColumnDef<BarisStok, unknown>[] = [
+    {
+      id: 'nama',
+      accessorFn: (s) => s.nama,
+      header: 'Barang',
+      cell: ({ row }) => (
+        <span className="font-semibold text-neutral-intense">
+          {row.original.nama}
+        </span>
+      ),
+    },
+    {
+      id: 'kategori',
+      accessorFn: (s) => s.kategori,
+      header: 'Kategori',
+      cell: ({ row }) => (
+        <span className="text-xs">{row.original.kategori}</span>
+      ),
+    },
+    {
+      id: 'jumlah',
+      accessorFn: (s) => s.jumlah,
+      header: 'Jumlah',
+      cell: ({ row }) => row.original.jumlah,
+    },
+    {
+      id: 'kondisi',
+      accessorFn: (s) => s.kondisi,
+      header: 'Kondisi',
+      cell: ({ row }) => (
+        <span className="text-xs">
+          {row.original.kondisi.replace('_', ' ')}
+        </span>
+      ),
+    },
+    {
+      id: 'dipinjam',
+      accessorFn: (s) => s.sedangDipinjam,
+      header: 'Dipinjam',
+      cell: ({ row }) => row.original.sedangDipinjam,
+    },
+    {
+      id: 'rusak',
+      accessorFn: (s) => s.rusakHilang,
+      header: 'Rusak/hilang',
+      cell: ({ row }) => (
+        <span
+          className={
+            row.original.rusakHilang > 0 ? 'font-semibold text-error' : ''
+          }
+        >
+          {row.original.rusakHilang}
+        </span>
+      ),
+    },
+  ]
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -119,154 +266,228 @@ function Laporan() {
             <TombolSekunder onClick={() => window.print()}>
               Cetak PDF
             </TombolSekunder>
-            <TombolUtama onClick={tab === 'stok' ? unduhStok : unduhRiwayat}>
+            <TombolUtama
+              onClick={() =>
+                void (tab === 'stok' ? unduhStok() : unduhRiwayat())
+              }
+            >
               Unduh CSV
             </TombolUtama>
           </>
         }
       />
 
-      <Card className="flex flex-wrap gap-2">
-        <a
-          href="/admin/laporan?tab=riwayat"
-          className={`rounded-full border px-3 py-1.5 text-sm font-semibold no-underline ${
-            tab === 'riwayat'
-              ? 'border-accent bg-accent text-white'
-              : 'border-neutral-soft bg-surface text-text-soft'
-          }`}
-        >
-          Riwayat Peminjaman
-        </a>
-        <a
-          href="/admin/laporan?tab=stok"
-          className={`rounded-full border px-3 py-1.5 text-sm font-semibold no-underline ${
-            tab === 'stok'
-              ? 'border-accent bg-accent text-white'
-              : 'border-neutral-soft bg-surface text-text-soft'
-          }`}
-        >
-          Rekap Stok
-        </a>
-      </Card>
-
       {tab === 'riwayat' ? (
         <>
-          <Card className="flex flex-wrap items-end gap-2">
-            <label className="flex flex-col gap-1.5 text-xs font-semibold text-neutral-bold">
-              Dari tanggal
-              <input
-                type="date"
-                className={inputCls}
-                value={dari}
-                onChange={(e) => setDari(e.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-xs font-semibold text-neutral-bold">
-              Sampai tanggal
-              <input
-                type="date"
-                className={inputCls}
-                value={sampai}
-                onChange={(e) => setSampai(e.target.value)}
-              />
-            </label>
-            <a
-              href={`/admin/laporan?tab=riwayat&dari=${dari}&sampai=${sampai}&status=${search.status}`}
-              className="rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-brand-ink no-underline"
-            >
-              Terapkan
-            </a>
-            <label className="flex flex-col gap-1.5 text-xs font-semibold text-neutral-bold">
-              Status
-              <select
-                className={inputCls}
-                value={search.status}
-                onChange={(e) => {
-                  window.location.href = `/admin/laporan?tab=riwayat&dari=${dari}&sampai=${sampai}&status=${e.target.value}`
-                }}
-              >
-                <option value="semua">Semua</option>
-                {STATUS_PENGAJUAN.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </Card>
+          <TabelData
+            columns={kolomRiwayat}
+            data={riwayat.hasil.rows}
+            total={riwayat.hasil.total}
+            totalSemua={riwayat.hasil.totalSemua}
+            perHalaman={riwayat.hasil.perHalaman}
+            halaman={riwayat.hasil.halaman}
+            sort={riwayat.params.sort}
+            dir={riwayat.params.dir}
+            sibuk={riwayat.sibuk}
+            onSort={(sort, dir) =>
+              riwayat.muat({
+                ...riwayat.params,
+                sort: sort ?? '',
+                dir,
+                halaman: 1,
+              })
+            }
+            onHalaman={(h) => riwayat.muat({ ...riwayat.params, halaman: h })}
+            onPerHalaman={(n) =>
+              riwayat.muat({
+                ...riwayat.params,
+                perHalaman: n,
+                halaman: 1,
+              })
+            }
+            kosong={{
+              title: 'Tidak ada data',
+              body: 'Tidak ada pengajuan pada filter ini.',
+            }}
+            toolbar={
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTab('riwayat')}
+                    className="rounded-full border border-accent bg-accent px-3 py-1.5 text-sm font-semibold text-white"
+                  >
+                    Riwayat Peminjaman
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTab('stok')}
+                    className="rounded-full border border-neutral-soft bg-surface px-3 py-1.5 text-sm font-semibold text-text-soft"
+                  >
+                    Rekap Stok
+                  </button>
+                </div>
 
-          {riwayat.length === 0 ? (
-            <EmptyState
-              title="Tidak ada data"
-              body="Tidak ada pengajuan pada rentang ini."
-            />
-          ) : (
-            <DataTable
-              head={['Kode', 'Organisasi', 'Periode', 'Barang', 'Status']}
-            >
-              {riwayat.map((r) => (
-                <BarisTabel key={r.kode}>
-                  <Sel className="font-mono text-xs font-semibold">
-                    {r.kode}
-                  </Sel>
-                  <Sel>
-                    <span className="font-semibold text-neutral-intense">
-                      {r.organisasi}
-                    </span>
-                    <span className="block text-xs text-text-soft">
-                      {r.penanggungJawab}
-                    </span>
-                  </Sel>
-                  <Sel className="whitespace-nowrap text-xs">
-                    {formatTanggal(r.tglPinjam)} → {formatTanggal(r.tglKembali)}
-                  </Sel>
-                  <Sel className="text-xs">{r.barang}</Sel>
-                  <Sel>
-                    <StatusBadge status={r.status as never} />
-                  </Sel>
-                </BarisTabel>
-              ))}
-            </DataTable>
-          )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <KotakCari
+                    nilai={riwayat.params.q}
+                    onCari={(q) =>
+                      riwayat.muat({ ...riwayat.params, q, halaman: 1 })
+                    }
+                    placeholder="Cari kode, organisasi, atau penanggung jawab…"
+                    className="min-w-56 flex-1"
+                  />
+                  <input
+                    type="date"
+                    aria-label="Dari tanggal"
+                    className={inputCls}
+                    value={riwayat.params.dari}
+                    onChange={(e) =>
+                      riwayat.muat({
+                        ...riwayat.params,
+                        dari: e.target.value,
+                        halaman: 1,
+                      })
+                    }
+                  />
+                  <input
+                    type="date"
+                    aria-label="Sampai tanggal"
+                    className={inputCls}
+                    value={riwayat.params.sampai}
+                    onChange={(e) =>
+                      riwayat.muat({
+                        ...riwayat.params,
+                        sampai: e.target.value,
+                        halaman: 1,
+                      })
+                    }
+                  />
+                  <select
+                    aria-label="Status"
+                    className={inputCls}
+                    value={riwayat.params.status}
+                    onChange={(e) =>
+                      riwayat.muat({
+                        ...riwayat.params,
+                        status: e.target.value,
+                        halaman: 1,
+                      })
+                    }
+                  >
+                    <option value="semua">Semua</option>
+                    {STATUS_PENGAJUAN.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                  {riwayat.params.q ||
+                  riwayat.params.dari ||
+                  riwayat.params.sampai ||
+                  riwayat.params.sort ? (
+                    <TombolSekunder
+                      onClick={() =>
+                        riwayat.muat({
+                          ...AWAL_RIWAYAT,
+                          status: riwayat.params.status,
+                        })
+                      }
+                    >
+                      Reset
+                    </TombolSekunder>
+                  ) : null}
+                </div>
+              </div>
+            }
+          />
           <p className="text-xs text-text-soft">
-            {riwayat.length} baris. Diekspor sebagai CSV dengan pemisah titik
-            koma.
+            {riwayat.hasil.total} baris. Diekspor sebagai CSV dengan pemisah
+            titik koma.
           </p>
         </>
       ) : (
         <>
-          <DataTable
-            head={[
-              'Barang',
-              'Kategori',
-              'Jumlah',
-              'Kondisi',
-              'Dipinjam',
-              'Rusak/hilang',
-            ]}
-          >
-            {stok.map((s) => (
-              <BarisTabel key={s.id}>
-                <Sel className="font-semibold text-neutral-intense">
-                  {s.nama}
-                </Sel>
-                <Sel className="text-xs">{s.kategori}</Sel>
-                <Sel>{s.jumlah}</Sel>
-                <Sel className="text-xs">{s.kondisi.replace('_', ' ')}</Sel>
-                <Sel>{s.sedangDipinjam}</Sel>
-                <Sel
-                  className={
-                    s.rusakHilang > 0 ? 'font-semibold text-error' : ''
-                  }
-                >
-                  {s.rusakHilang}
-                </Sel>
-              </BarisTabel>
-            ))}
-          </DataTable>
+          <TabelData
+            columns={kolomStok}
+            data={stok.hasil.rows}
+            total={stok.hasil.total}
+            totalSemua={stok.hasil.totalSemua}
+            perHalaman={stok.hasil.perHalaman}
+            halaman={stok.hasil.halaman}
+            sort={stok.params.sort}
+            dir={stok.params.dir}
+            sibuk={stok.sibuk}
+            onSort={(sort, dir) =>
+              stok.muat({ ...stok.params, sort: sort ?? '', dir, halaman: 1 })
+            }
+            onHalaman={(h) => stok.muat({ ...stok.params, halaman: h })}
+            onPerHalaman={(n) =>
+              stok.muat({ ...stok.params, perHalaman: n, halaman: 1 })
+            }
+            kosong={{
+              title: 'Tidak ada data',
+              body: 'Tidak ada barang pada filter ini.',
+            }}
+            toolbar={
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTab('riwayat')}
+                    className="rounded-full border border-neutral-soft bg-surface px-3 py-1.5 text-sm font-semibold text-text-soft"
+                  >
+                    Riwayat Peminjaman
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTab('stok')}
+                    className="rounded-full border border-accent bg-accent px-3 py-1.5 text-sm font-semibold text-white"
+                  >
+                    Rekap Stok
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <KotakCari
+                    nilai={stok.params.q}
+                    onCari={(q) => stok.muat({ ...stok.params, q, halaman: 1 })}
+                    placeholder="Cari nama barang atau kategori…"
+                    className="min-w-56 flex-1"
+                  />
+                  <select
+                    aria-label="Kategori"
+                    className={inputCls}
+                    value={stok.params.kategoriId}
+                    onChange={(e) =>
+                      stok.muat({
+                        ...stok.params,
+                        kategoriId: e.target.value,
+                        halaman: 1,
+                      })
+                    }
+                  >
+                    <option value="">Semua kategori</option>
+                    {awal.kategori.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {k.nama}
+                      </option>
+                    ))}
+                  </select>
+                  {stok.params.q ||
+                  stok.params.kategoriId ||
+                  stok.params.sort ? (
+                    <TombolSekunder onClick={() => stok.muat(AWAL_STOK)}>
+                      Reset
+                    </TombolSekunder>
+                  ) : null}
+                </div>
+              </div>
+            }
+          />
           <p className="text-xs text-text-soft">
-            "Rusak/hilang" dihitung dari catatan pengembalian (BR05), bukan dari
-            jumlah stok saat ini.
+            &quot;Rusak/hilang&quot; dihitung dari catatan pengembalian (BR05),
+            bukan dari jumlah stok saat ini.
           </p>
         </>
       )}

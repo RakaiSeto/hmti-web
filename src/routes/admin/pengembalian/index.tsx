@@ -1,84 +1,207 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import type { ColumnDef } from '@tanstack/react-table'
 
-import { formatTanggal } from '../../../lib/dates'
-import { daftarPeminjamanAktif } from '../../../server/siklus'
-import { StatusBadge } from '../../../components/StatusBadge'
+import { formatWaktu } from '../../../lib/dates'
+import { daftarPengembalian } from '../../../server/siklus'
+import type { BarisPengembalian } from '../../../server/siklus'
+import { TabelData } from '../../../components/TabelData'
 import {
-  BarisTabel,
-  DataTable,
-  EmptyState,
+  KotakCari,
   PageHeader,
-  Sel,
+  TombolAksi,
+  TombolSekunder,
+  inputCls,
 } from '../../../components/ui'
+import type { ArahUrut } from '../../../lib/tabel'
+import { PER_HALAMAN } from '../../../lib/tabel'
+import { useDaftar } from '../../../lib/useDaftar'
+
+interface ParamsPengembalian {
+  q: string
+  dari: string
+  sampai: string
+  sort: string
+  dir: ArahUrut
+  halaman: number
+  perHalaman: number
+}
+
+const AWAL_PENGEMBALIAN: ParamsPengembalian = {
+  q: '',
+  dari: '',
+  sampai: '',
+  sort: '',
+  dir: 'desc',
+  halaman: 1,
+  perHalaman: PER_HALAMAN,
+}
 
 export const Route = createFileRoute('/admin/pengembalian/')({
-  loader: () => daftarPeminjamanAktif({ data: { hanyaTerlambat: false } }),
-  component: DaftarPengembalian,
+  loader: () => daftarPengembalian({ data: AWAL_PENGEMBALIAN }),
+  component: RiwayatPengembalian,
 })
 
 /**
- * The return queue (FR16).
+ * The return history (FR16) — what has already come back, newest first.
  *
- * Same rows as Peminjaman Aktif — a request awaiting return *is* an active loan. The two
- * nav entries exist because they are different jobs: one is "what is out", this is "what
- * came back". Overdue first, since that is the one that needs chasing.
+ * The active half of the loop is Peminjaman Aktif; this is the finished half. A return is
+ * recorded from `/admin/pengembalian/$kode`, reached from a loan's "Kembalikan" action.
  */
-function DaftarPengembalian() {
-  const { rows } = Route.useLoaderData()
-  const urut = [...rows].sort((a, b) =>
-    a.terlambat === b.terlambat
-      ? a.tglKembali.localeCompare(b.tglKembali)
-      : a.terlambat
-        ? -1
-        : 1,
+function RiwayatPengembalian() {
+  const awal = Route.useLoaderData()
+  const navigate = useNavigate()
+  const { params, hasil, sibuk, muat } = useDaftar(
+    daftarPengembalian,
+    awal,
+    AWAL_PENGEMBALIAN,
   )
+
+  const columns: ColumnDef<BarisPengembalian, unknown>[] = [
+    {
+      id: 'kode',
+      accessorFn: (r) => r.kode,
+      header: 'Kode',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs font-semibold whitespace-nowrap">
+          {row.original.kode}
+        </span>
+      ),
+    },
+    {
+      id: 'organisasi',
+      accessorFn: (r) => r.organisasi,
+      header: 'Organisasi',
+      cell: ({ row }) => (
+        <>
+          <span className="font-semibold text-neutral-intense">
+            {row.original.organisasi}
+          </span>
+          <span className="block text-xs font-medium text-text-soft">
+            {row.original.penanggungJawab}
+          </span>
+        </>
+      ),
+    },
+    {
+      id: 'waktu',
+      accessorFn: (r) => r.waktu.getTime(),
+      header: 'Dikembalikan',
+      cell: ({ row }) => (
+        <>
+          <span className="whitespace-nowrap text-xs">
+            {formatWaktu(row.original.waktu)}
+          </span>
+          <span className="block text-xs font-medium text-text-soft">
+            oleh {row.original.oleh}
+          </span>
+        </>
+      ),
+    },
+    {
+      id: 'barang',
+      header: 'Barang',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <span className="text-xs whitespace-nowrap">
+          {row.original.jumlahBaris} jenis · {row.original.totalUnit} unit
+        </span>
+      ),
+    },
+    {
+      id: 'rusak',
+      accessorFn: (r) => r.rusakHilang,
+      header: 'Rusak/hilang',
+      cell: ({ row }) => (
+        <span
+          className={
+            row.original.rusakHilang > 0
+              ? 'font-semibold text-error'
+              : 'text-xs'
+          }
+        >
+          {row.original.rusakHilang}
+        </span>
+      ),
+    },
+    {
+      id: 'aksi',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <TombolAksi
+          onClick={() =>
+            void navigate({
+              to: '/admin/permintaan/$kode',
+              params: { kode: row.original.kode },
+            })
+          }
+        >
+          Detail
+        </TombolAksi>
+      ),
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Pengembalian"
-        subtitle="Catat barang yang dikembalikan oleh organisasi peminjam."
+        subtitle="Riwayat barang yang sudah dikembalikan."
       />
 
-      {urut.length === 0 ? (
-        <EmptyState
-          title="Tidak ada yang perlu dikembalikan"
-          body="Tidak ada peminjaman aktif saat ini."
-        />
-      ) : (
-        <DataTable head={['Kode', 'Organisasi', 'Jatuh tempo', 'Status', '']}>
-          {urut.map((r) => (
-            <BarisTabel key={r.kode}>
-              <Sel className="font-mono text-xs font-semibold">{r.kode}</Sel>
-              <Sel>
-                <span className="font-semibold text-neutral-intense">
-                  {r.organisasi}
-                </span>
-                <span className="block text-xs text-text-soft">
-                  {r.penanggungJawab}
-                </span>
-              </Sel>
-              <Sel
-                className={`whitespace-nowrap text-xs ${r.terlambat ? 'font-semibold text-error' : ''}`}
-              >
-                {formatTanggal(r.tglKembali)}
-              </Sel>
-              <Sel>
-                <StatusBadge status={r.terlambat ? 'Terlambat' : 'Dipinjam'} />
-              </Sel>
-              <Sel>
-                <Link
-                  to="/admin/pengembalian/$kode"
-                  params={{ kode: r.kode }}
-                  className="text-sm font-semibold text-accent no-underline hover:underline"
-                >
-                  Catat pengembalian
-                </Link>
-              </Sel>
-            </BarisTabel>
-          ))}
-        </DataTable>
-      )}
+      <TabelData
+        columns={columns}
+        data={hasil.rows}
+        total={hasil.total}
+        totalSemua={hasil.totalSemua}
+        perHalaman={hasil.perHalaman}
+        halaman={hasil.halaman}
+        sort={params.sort}
+        dir={params.dir}
+        sibuk={sibuk}
+        onSort={(sort, dir) =>
+          muat({ ...params, sort: sort ?? '', dir, halaman: 1 })
+        }
+        onHalaman={(h) => muat({ ...params, halaman: h })}
+        onPerHalaman={(n) => muat({ ...params, perHalaman: n, halaman: 1 })}
+        kosong={{
+          title: 'Belum ada pengembalian',
+          body: 'Barang yang sudah dikembalikan akan muncul di sini.',
+        }}
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2">
+            <KotakCari
+              nilai={params.q}
+              onCari={(q) => muat({ ...params, q, halaman: 1 })}
+              placeholder="Cari kode, organisasi, atau penanggung jawab…"
+              className="min-w-56 flex-1"
+            />
+            <input
+              type="date"
+              aria-label="Dari tanggal"
+              className={inputCls}
+              value={params.dari}
+              onChange={(e) =>
+                muat({ ...params, dari: e.target.value, halaman: 1 })
+              }
+            />
+            <input
+              type="date"
+              aria-label="Sampai tanggal"
+              className={inputCls}
+              value={params.sampai}
+              onChange={(e) =>
+                muat({ ...params, sampai: e.target.value, halaman: 1 })
+              }
+            />
+            {params.q || params.dari || params.sampai || params.sort ? (
+              <TombolSekunder onClick={() => muat(AWAL_PENGEMBALIAN)}>
+                Reset
+              </TombolSekunder>
+            ) : null}
+          </div>
+        }
+      />
     </div>
   )
 }

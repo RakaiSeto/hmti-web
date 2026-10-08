@@ -18,6 +18,9 @@ import { bolehTransisi, isTerlambat } from '#/domain/status'
 import { todayWib } from '#/lib/dates'
 import { butuhPeran, butuhSesi } from '#/lib/guards'
 import { newId, newKode, normaliseKode } from '#/lib/id'
+import type { HasilHalaman } from '#/lib/tabel'
+import { PER_HALAMAN } from '#/lib/tabel'
+import { ambilHalaman, pilihUrut, susunWhere } from './query'
 
 const tanggal = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal tidak valid')
 
@@ -228,8 +231,7 @@ export const lacakPengajuan = createServerFn({ method: 'GET' })
     }
   })
 
-/**
- * The queue query's row shape.
+/** The queue query's row shape.
  *
  * `total_unit` is `SUM()` over a correlated subquery with no COALESCE, so SQLite really
  * does hand back NULL when a request has no lines — hence `| null`, and hence the `?? 0`
@@ -249,7 +251,49 @@ interface BarisDaftar {
   total_unit: number | null
 }
 
-/** The staff queue (FR11). Filters compose; pending sorts first. */
+/** A queue row as the table renders it. */
+export interface BarisPengajuan {
+  id: string
+  kode: string
+  organisasi: string
+  penanggungJawab: string
+  tglPinjam: string
+  tglKembali: string
+  keperluan: string
+  status: StatusPengajuan
+  terlambat: boolean
+  jumlahBaris: number
+  totalUnit: number
+}
+
+const SELECT_PENGAJUAN = `SELECT p.id, p.kode, p.organisasi, p.penanggung_jawab, p.tgl_pinjam, p.tgl_kembali,
+        p.keperluan, p.status, p.created_at,
+        (SELECT COUNT(*) FROM pengajuan_barang pb WHERE pb.pengajuan_id = p.id) AS jumlah_baris,
+        (SELECT SUM(pb.jumlah) FROM pengajuan_barang pb WHERE pb.pengajuan_id = p.id) AS total_unit
+ FROM pengajuan p`
+
+/**
+ * Sortable queue columns, keyed by the `sort` search param. The default order is the
+ * status rank below, so pending work stays on top until a column is chosen.
+ */
+const URUT_PENGAJUAN: Record<string, string> = {
+  kode: 'p.kode',
+  organisasi: 'p.organisasi',
+  pinjam: 'p.tgl_pinjam',
+  kembali: 'p.tgl_kembali',
+  status: 'p.status',
+}
+
+const URUT_BAWAAN_PENGAJUAN = `ORDER BY
+  CASE p.status
+    WHEN 'Diajukan' THEN 0
+    WHEN 'Disetujui' THEN 1
+    WHEN 'Dipinjam' THEN 2
+    ELSE 3
+  END,
+  p.tgl_pinjam ASC`
+
+/** The staff queue (FR11). Filters compose; pending sorts first by default. */
 export const daftarPengajuan = createServerFn({ method: 'GET' })
   .validator(
     z.object({
@@ -259,9 +303,13 @@ export const daftarPengajuan = createServerFn({ method: 'GET' })
       q: z.string().default(''),
       dari: z.string().default(''),
       sampai: z.string().default(''),
+      sort: z.string().default(''),
+      dir: z.enum(['asc', 'desc']).default('asc'),
+      halaman: z.number().int().min(1).default(1),
+      perHalaman: z.number().int().default(PER_HALAMAN),
     }),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<HasilHalaman<BarisPengajuan>> => {
     await butuhSesi()
     const clauses: string[] = []
     const params: unknown[] = []
@@ -291,39 +339,42 @@ export const daftarPengajuan = createServerFn({ method: 'GET' })
       params.push(data.sampai)
     }
 
-    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''
-    const { results } = await env.DB.prepare(
-      `SELECT p.id, p.kode, p.organisasi, p.penanggung_jawab, p.tgl_pinjam, p.tgl_kembali,
-              p.keperluan, p.status, p.created_at,
-              (SELECT COUNT(*) FROM pengajuan_barang pb WHERE pb.pengajuan_id = p.id) AS jumlah_baris,
-              (SELECT SUM(pb.jumlah) FROM pengajuan_barang pb WHERE pb.pengajuan_id = p.id) AS total_unit
-       FROM pengajuan p
-       ${where}
-       ORDER BY
-         CASE p.status
-           WHEN 'Diajukan' THEN 0
-           WHEN 'Disetujui' THEN 1
-           WHEN 'Dipinjam' THEN 2
-           ELSE 3
-         END,
-         p.tgl_pinjam ASC`,
+    const where = susunWhere(clauses)
+    const order = pilihUrut(
+      URUT_PENGAJUAN,
+      data.sort,
+      data.dir,
+      URUT_BAWAAN_PENGAJUAN,
     )
-      .bind(...params)
-      .all<BarisDaftar>()
 
-    return results.map((r) => ({
-      id: r.id,
-      kode: r.kode,
-      organisasi: r.organisasi,
-      penanggungJawab: r.penanggung_jawab,
-      tglPinjam: r.tgl_pinjam,
-      tglKembali: r.tgl_kembali,
-      keperluan: r.keperluan,
-      status: r.status,
-      terlambat: isTerlambat(r.status, r.tgl_kembali),
-      jumlahBaris: r.jumlah_baris,
-      totalUnit: r.total_unit ?? 0,
-    }))
+    const hasil = await ambilHalaman<BarisDaftar>(
+      env.DB,
+      {
+        count: `SELECT COUNT(*) AS c FROM pengajuan p ${where}`,
+        countSemua: `SELECT COUNT(*) AS c FROM pengajuan p`,
+        rows: `${SELECT_PENGAJUAN} ${where} ${order}`,
+      },
+      params,
+      data.halaman,
+      data.perHalaman,
+    )
+
+    return {
+      ...hasil,
+      rows: hasil.rows.map((r) => ({
+        id: r.id,
+        kode: r.kode,
+        organisasi: r.organisasi,
+        penanggungJawab: r.penanggung_jawab,
+        tglPinjam: r.tgl_pinjam,
+        tglKembali: r.tgl_kembali,
+        keperluan: r.keperluan,
+        status: r.status,
+        terlambat: isTerlambat(r.status, r.tgl_kembali),
+        jumlahBaris: r.jumlah_baris,
+        totalUnit: r.total_unit ?? 0,
+      })),
+    }
   })
 
 /** The lines recorded against a return, with their item names. */

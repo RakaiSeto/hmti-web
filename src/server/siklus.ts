@@ -13,6 +13,9 @@ import { logAksi } from '#/domain/log'
 import { bolehTransisi } from '#/domain/status'
 import { butuhPeran, butuhSesi } from '#/lib/guards'
 import { newId } from '#/lib/id'
+import type { HasilHalaman } from '#/lib/tabel'
+import { PER_HALAMAN } from '#/lib/tabel'
+import { ambilHalaman, pilihUrut, susunWhere } from './query'
 
 const TIPE_SURAT = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 const MAKS_SURAT = 8 * 1024 * 1024
@@ -339,46 +342,229 @@ interface BarisPinjaman {
   jumlah_baris: number
 }
 
+/** An active loan as the table renders it. */
+export interface BarisPinjamanAktif {
+  kode: string
+  organisasi: string
+  penanggungJawab: string
+  kontak: string
+  tglPinjam: string
+  tglKembali: string
+  keperluan: string
+  totalUnit: number
+  jumlahBaris: number
+  terlambat: boolean
+}
+
+/** Sortable active-loan columns, keyed by the `sort` search param. */
+const URUT_PINJAMAN: Record<string, string> = {
+  kode: 'p.kode',
+  organisasi: 'p.organisasi',
+  kembali: 'p.tgl_kembali',
+}
+
+const SELECT_PINJAMAN = `SELECT p.id, p.kode, p.organisasi, p.penanggung_jawab, p.kontak,
+        p.tgl_pinjam, p.tgl_kembali, p.keperluan, p.status,
+        (SELECT SUM(pb.jumlah) FROM pengajuan_barang pb WHERE pb.pengajuan_id = p.id) AS total_unit,
+        (SELECT COUNT(*) FROM pengajuan_barang pb WHERE pb.pengajuan_id = p.id) AS jumlah_baris
+ FROM pengajuan p`
+
 /** Requests currently out, overdue first. */
 export const daftarPeminjamanAktif = createServerFn({ method: 'GET' })
   .validator(
     z
-      .object({ hanyaTerlambat: z.boolean().default(false) })
-      .default({ hanyaTerlambat: false }),
+      .object({
+        hanyaTerlambat: z.boolean().default(false),
+        q: z.string().default(''),
+        sort: z.string().default(''),
+        dir: z.enum(['asc', 'desc']).default('asc'),
+        halaman: z.number().int().min(1).default(1),
+        perHalaman: z.number().int().default(PER_HALAMAN),
+      })
+      .default({
+        hanyaTerlambat: false,
+        q: '',
+        sort: '',
+        dir: 'asc',
+        halaman: 1,
+        perHalaman: PER_HALAMAN,
+      }),
   )
-  .handler(async ({ data }) => {
-    await butuhSesi()
-    const { todayWib } = await import('#/lib/dates')
-    const hariIni = todayWib()
-    const where = data.hanyaTerlambat
-      ? `WHERE p.status = 'Dipinjam' AND p.tgl_kembali < ?`
-      : `WHERE p.status = 'Dipinjam'`
-    const params = data.hanyaTerlambat ? [hariIni] : []
+  .handler(
+    async ({
+      data,
+    }): Promise<HasilHalaman<BarisPinjamanAktif> & { hariIni: string }> => {
+      await butuhSesi()
+      const { todayWib } = await import('#/lib/dates')
+      const hariIni = todayWib()
 
-    const { results } = await env.DB.prepare(
-      `SELECT p.id, p.kode, p.organisasi, p.penanggung_jawab, p.kontak,
-              p.tgl_pinjam, p.tgl_kembali, p.keperluan, p.status,
-              (SELECT SUM(pb.jumlah) FROM pengajuan_barang pb WHERE pb.pengajuan_id = p.id) AS total_unit,
-              (SELECT COUNT(*) FROM pengajuan_barang pb WHERE pb.pengajuan_id = p.id) AS jumlah_baris
-       FROM pengajuan p ${where}
-       ORDER BY p.tgl_kembali ASC`,
+      const clauses: string[] = [`p.status = 'Dipinjam'`]
+      const params: unknown[] = []
+      if (data.hanyaTerlambat) {
+        clauses.push('p.tgl_kembali < ?')
+        params.push(hariIni)
+      }
+      if (data.q.trim()) {
+        clauses.push(
+          '(p.kode LIKE ? OR p.organisasi LIKE ? OR p.penanggung_jawab LIKE ?)',
+        )
+        const like = `%${data.q.trim()}%`
+        params.push(like, like, like)
+      }
+      const where = susunWhere(clauses)
+      const order = pilihUrut(
+        URUT_PINJAMAN,
+        data.sort,
+        data.dir,
+        'ORDER BY p.tgl_kembali ASC',
+      )
+
+      const hasil = await ambilHalaman<BarisPinjaman>(
+        env.DB,
+        {
+          count: `SELECT COUNT(*) AS c FROM pengajuan p ${where}`,
+          countSemua: `SELECT COUNT(*) AS c FROM pengajuan p
+                       WHERE p.status = 'Dipinjam'`,
+          rows: `${SELECT_PINJAMAN} ${where} ${order}`,
+        },
+        params,
+        data.halaman,
+        data.perHalaman,
+      )
+
+      return {
+        ...hasil,
+        hariIni,
+        rows: hasil.rows.map((r) => ({
+          kode: r.kode,
+          organisasi: r.organisasi,
+          penanggungJawab: r.penanggung_jawab,
+          kontak: r.kontak,
+          tglPinjam: r.tgl_pinjam,
+          tglKembali: r.tgl_kembali,
+          keperluan: r.keperluan,
+          totalUnit: r.total_unit ?? 0,
+          jumlahBaris: r.jumlah_baris,
+          terlambat: r.tgl_kembali < hariIni,
+        })),
+      }
+    },
+  )
+
+/* --- return history (FR16) ------------------------------------------------ */
+
+/** A recorded return's raw row. */
+interface BarisKembali {
+  id: string
+  kode: string
+  organisasi: string
+  penanggung_jawab: string
+  waktu: number
+  oleh: string | null
+  jumlah_baris: number
+  total_unit: number | null
+  rusak_hilang: number
+}
+
+/** A recorded return as the table renders it. */
+export interface BarisPengembalian {
+  id: string
+  kode: string
+  organisasi: string
+  penanggungJawab: string
+  waktu: Date
+  oleh: string
+  jumlahBaris: number
+  totalUnit: number
+  rusakHilang: number
+}
+
+const SELECT_KEMBALI = `SELECT pk.id, p.kode, p.organisasi, p.penanggung_jawab, pk.waktu,
+        u.name AS oleh,
+        (SELECT COUNT(*) FROM pengajuan_barang pb WHERE pb.pengajuan_id = p.id) AS jumlah_baris,
+        (SELECT SUM(pb.jumlah) FROM pengajuan_barang pb WHERE pb.pengajuan_id = p.id) AS total_unit,
+        (SELECT COALESCE(SUM(pi.jumlah), 0) FROM pengembalian_item pi
+           WHERE pi.pengembalian_id = pk.id AND pi.kondisi IN ('rusak', 'hilang')) AS rusak_hilang
+ FROM pengembalian pk
+ JOIN pengajuan p ON p.id = pk.pengajuan_id
+ LEFT JOIN user u ON u.id = pk.dicatat_oleh`
+
+/** Sortable return-history columns, keyed by the `sort` search param. */
+const URUT_KEMBALI: Record<string, string> = {
+  kode: 'p.kode',
+  organisasi: 'p.organisasi',
+  waktu: 'pk.waktu',
+  rusak: 'rusak_hilang',
+}
+
+/**
+ * Returns already recorded (FR16) — the finished half of the loop, newest first. Distinct
+ * from `daftarPeminjamanAktif`, which lists what is still out.
+ */
+export const daftarPengembalian = createServerFn({ method: 'GET' })
+  .validator(
+    z.object({
+      q: z.string().default(''),
+      dari: z.string().default(''),
+      sampai: z.string().default(''),
+      sort: z.string().default(''),
+      dir: z.enum(['asc', 'desc']).default('desc'),
+      halaman: z.number().int().min(1).default(1),
+      perHalaman: z.number().int().default(PER_HALAMAN),
+    }),
+  )
+  .handler(async ({ data }): Promise<HasilHalaman<BarisPengembalian>> => {
+    await butuhSesi()
+    const clauses: string[] = []
+    const params: unknown[] = []
+    if (data.q.trim()) {
+      clauses.push(
+        '(p.kode LIKE ? OR p.organisasi LIKE ? OR p.penanggung_jawab LIKE ?)',
+      )
+      const like = `%${data.q.trim()}%`
+      params.push(like, like, like)
+    }
+    if (data.dari) {
+      clauses.push(`pk.waktu >= strftime('%s', ?)`)
+      params.push(`${data.dari} 00:00:00`)
+    }
+    if (data.sampai) {
+      clauses.push(`pk.waktu <= strftime('%s', ?)`)
+      params.push(`${data.sampai} 23:59:59`)
+    }
+    const where = susunWhere(clauses)
+    const order = pilihUrut(
+      URUT_KEMBALI,
+      data.sort,
+      data.dir,
+      'ORDER BY pk.waktu DESC',
     )
-      .bind(...params)
-      .all<BarisPinjaman>()
+
+    const hasil = await ambilHalaman<BarisKembali>(
+      env.DB,
+      {
+        count: `SELECT COUNT(*) AS c FROM pengembalian pk
+                JOIN pengajuan p ON p.id = pk.pengajuan_id ${where}`,
+        countSemua: `SELECT COUNT(*) AS c FROM pengembalian pk`,
+        rows: `${SELECT_KEMBALI} ${where} ${order}`,
+      },
+      params,
+      data.halaman,
+      data.perHalaman,
+    )
 
     return {
-      hariIni,
-      rows: results.map((r) => ({
+      ...hasil,
+      rows: hasil.rows.map((r) => ({
+        id: r.id,
         kode: r.kode,
         organisasi: r.organisasi,
         penanggungJawab: r.penanggung_jawab,
-        kontak: r.kontak,
-        tglPinjam: r.tgl_pinjam,
-        tglKembali: r.tgl_kembali,
-        keperluan: r.keperluan,
-        totalUnit: r.total_unit ?? 0,
+        waktu: new Date(r.waktu * 1000),
+        oleh: r.oleh ?? '—',
         jumlahBaris: r.jumlah_baris,
-        terlambat: r.tgl_kembali < hariIni,
+        totalUnit: r.total_unit ?? 0,
+        rusakHilang: r.rusak_hilang,
       })),
     }
   })

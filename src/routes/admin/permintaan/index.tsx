@@ -1,45 +1,50 @@
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import type { ColumnDef } from '@tanstack/react-table'
 
 import type { STATUS_PENGAJUAN } from '../../../db/schema'
 import { formatTanggal } from '../../../lib/dates'
 import { daftarPengajuan } from '../../../server/pengajuan'
+import type { BarisPengajuan } from '../../../server/pengajuan'
 import { StatusBadge } from '../../../components/StatusBadge'
+import { TabelData } from '../../../components/TabelData'
 import {
-  BarisTabel,
-  Card,
-  DataTable,
-  EmptyState,
+  KotakCari,
   PageHeader,
-  Sel,
+  TombolAksi,
+  TombolSekunder,
   inputCls,
 } from '../../../components/ui'
+import type { ArahUrut } from '../../../lib/tabel'
+import { PER_HALAMAN } from '../../../lib/tabel'
+import { useDaftar } from '../../../lib/useDaftar'
 
 type FilterStatus = (typeof STATUS_PENGAJUAN)[number] | 'semua' | 'Terlambat'
 
+interface ParamsPermintaan {
+  status: FilterStatus
+  q: string
+  dari: string
+  sampai: string
+  sort: string
+  dir: ArahUrut
+  halaman: number
+  perHalaman: number
+}
+
+const AWAL_PERMINTAAN: ParamsPermintaan = {
+  // The queue opens on the requests that need a decision (FR11), not the whole archive.
+  status: 'Diajukan',
+  q: '',
+  dari: '',
+  sampai: '',
+  sort: '',
+  dir: 'asc',
+  halaman: 1,
+  perHalaman: PER_HALAMAN,
+}
+
 export const Route = createFileRoute('/admin/permintaan/')({
-  // Search params are optional so a plain <Link to="/admin/permintaan"> needs no
-  // `search` prop; the loader applies the defaults.
-  validateSearch: (
-    s: Record<string, unknown>,
-  ): {
-    status?: FilterStatus
-    q?: string
-    dari?: string
-    sampai?: string
-  } => ({
-    status: s.status as FilterStatus | undefined,
-    q: typeof s.q === 'string' ? s.q : undefined,
-    dari: typeof s.dari === 'string' ? s.dari : undefined,
-    sampai: typeof s.sampai === 'string' ? s.sampai : undefined,
-  }),
-  loaderDeps: ({ search }) => ({
-    status: search.status ?? 'semua',
-    q: search.q ?? '',
-    dari: search.dari ?? '',
-    sampai: search.sampai ?? '',
-  }),
-  loader: ({ deps }) => daftarPengajuan({ data: deps }),
+  loader: () => daftarPengajuan({ data: AWAL_PERMINTAAN }),
   component: Permintaan,
 })
 
@@ -50,10 +55,89 @@ export const Route = createFileRoute('/admin/permintaan/')({
  * rows that need a decision are always at the top regardless of dates.
  */
 function Permintaan() {
-  const rows = Route.useLoaderData()
-  const search = Route.useSearch()
-  const navigate = useNavigate({ from: Route.fullPath })
-  const [q, setQ] = useState(search.q ?? '')
+  const awal = Route.useLoaderData()
+  const navigate = useNavigate()
+  const { params, hasil, sibuk, muat } = useDaftar(
+    daftarPengajuan,
+    awal,
+    AWAL_PERMINTAAN,
+  )
+
+  const columns: ColumnDef<BarisPengajuan, unknown>[] = [
+    {
+      id: 'kode',
+      accessorFn: (r) => r.kode,
+      header: 'Kode',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs font-semibold whitespace-nowrap">
+          {row.original.kode}
+        </span>
+      ),
+    },
+    {
+      id: 'organisasi',
+      accessorFn: (r) => r.organisasi,
+      header: 'Organisasi',
+      cell: ({ row }) => (
+        <>
+          <span className="font-semibold text-neutral-intense">
+            {row.original.organisasi}
+          </span>
+          <span className="block text-xs font-medium text-text-soft">
+            {row.original.penanggungJawab}
+          </span>
+        </>
+      ),
+    },
+    {
+      id: 'pinjam',
+      accessorFn: (r) => r.tglPinjam,
+      header: 'Tanggal',
+      cell: ({ row }) => (
+        <span className="whitespace-nowrap text-xs">
+          {formatTanggal(row.original.tglPinjam)} →{' '}
+          {formatTanggal(row.original.tglKembali)}
+        </span>
+      ),
+    },
+    {
+      id: 'barang',
+      header: 'Barang',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <span className="text-xs whitespace-nowrap">
+          {row.original.jumlahBaris} jenis · {row.original.totalUnit} unit
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      accessorFn: (r) => r.status,
+      header: 'Status',
+      cell: ({ row }) => (
+        <StatusBadge
+          status={row.original.terlambat ? 'Terlambat' : row.original.status}
+        />
+      ),
+    },
+    {
+      id: 'aksi',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <TombolAksi
+          onClick={() =>
+            void navigate({
+              to: '/admin/permintaan/$kode',
+              params: { kode: row.original.kode },
+            })
+          }
+        >
+          Detail
+        </TombolAksi>
+      ),
+    },
+  ]
 
   const tab: Array<{ label: string; value: FilterStatus }> = [
     { label: 'Semua', value: 'semua' },
@@ -73,110 +157,84 @@ function Permintaan() {
         subtitle="Tinjau pengajuan peminjaman dari UKM, HMJ, dan instansi."
       />
 
-      <Card className="flex flex-col gap-4">
-        <div className="flex flex-wrap gap-2">
-          {tab.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() =>
-                void navigate({ search: (p) => ({ ...p, status: t.value }) })
-              }
-              className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
-                search.status === t.value
-                  ? 'border-accent bg-accent text-white'
-                  : 'border-neutral-soft bg-surface text-text-soft hover:text-text'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        <form
-          className="flex flex-wrap gap-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void navigate({ search: (p) => ({ ...p, q }) })
-          }}
-        >
-          <input
-            className={`${inputCls} min-w-64 flex-1`}
-            placeholder="Cari kode, organisasi, atau penanggung jawab…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <input
-            type="date"
-            aria-label="Dari tanggal"
-            className={inputCls}
-            value={search.dari ?? ''}
-            onChange={(e) =>
-              void navigate({ search: (p) => ({ ...p, dari: e.target.value }) })
-            }
-          />
-          <input
-            type="date"
-            aria-label="Sampai tanggal"
-            className={inputCls}
-            value={search.sampai ?? ''}
-            onChange={(e) =>
-              void navigate({
-                search: (p) => ({ ...p, sampai: e.target.value }),
-              })
-            }
-          />
-          <button
-            type="submit"
-            className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-ink"
-          >
-            Cari
-          </button>
-        </form>
-      </Card>
-
-      {rows.length === 0 ? (
-        <EmptyState
-          title="Tidak ada pengajuan"
-          body="Tidak ada pengajuan yang cocok dengan filter ini. Coba ubah status atau kata kunci."
-        />
-      ) : (
-        <DataTable
-          head={['Kode', 'Organisasi', 'Tanggal', 'Barang', 'Status', '']}
-        >
-          {rows.map((r) => (
-            <BarisTabel key={r.kode}>
-              <Sel className="font-mono text-xs font-semibold">{r.kode}</Sel>
-              <Sel>
-                <span className="font-semibold text-neutral-intense">
-                  {r.organisasi}
-                </span>
-                <span className="block text-xs text-text-soft">
-                  {r.penanggungJawab}
-                </span>
-              </Sel>
-              <Sel className="whitespace-nowrap text-xs">
-                {formatTanggal(r.tglPinjam)} → {formatTanggal(r.tglKembali)}
-              </Sel>
-              <Sel className="text-xs">
-                {r.jumlahBaris} jenis · {r.totalUnit} unit
-              </Sel>
-              <Sel>
-                <StatusBadge status={r.terlambat ? 'Terlambat' : r.status} />
-              </Sel>
-              <Sel>
-                <Link
-                  to="/admin/permintaan/$kode"
-                  params={{ kode: r.kode }}
-                  className="text-sm font-semibold text-accent no-underline hover:underline"
+      <TabelData
+        columns={columns}
+        data={hasil.rows}
+        total={hasil.total}
+        totalSemua={hasil.totalSemua}
+        perHalaman={hasil.perHalaman}
+        halaman={hasil.halaman}
+        sort={params.sort}
+        dir={params.dir}
+        sibuk={sibuk}
+        onSort={(sort, dir) =>
+          muat({ ...params, sort: sort ?? '', dir, halaman: 1 })
+        }
+        onHalaman={(h) => muat({ ...params, halaman: h })}
+        onPerHalaman={(n) => muat({ ...params, perHalaman: n, halaman: 1 })}
+        kosong={{
+          title: 'Tidak ada pengajuan',
+          body: 'Tidak ada pengajuan yang cocok dengan filter ini. Coba ubah status atau kata kunci.',
+        }}
+        toolbar={
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap gap-2">
+              {tab.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() =>
+                    muat({ ...params, status: t.value, halaman: 1 })
+                  }
+                  className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                    params.status === t.value
+                      ? 'border-accent bg-accent text-white'
+                      : 'border-neutral-soft bg-surface text-text-soft hover:text-text'
+                  }`}
                 >
-                  Detail
-                </Link>
-              </Sel>
-            </BarisTabel>
-          ))}
-        </DataTable>
-      )}
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <KotakCari
+                nilai={params.q}
+                onCari={(q) => muat({ ...params, q, halaman: 1 })}
+                placeholder="Cari kode, organisasi, atau penanggung jawab…"
+                className="min-w-64 flex-1"
+              />
+              <input
+                type="date"
+                aria-label="Dari tanggal"
+                className={inputCls}
+                value={params.dari}
+                onChange={(e) =>
+                  muat({ ...params, dari: e.target.value, halaman: 1 })
+                }
+              />
+              <input
+                type="date"
+                aria-label="Sampai tanggal"
+                className={inputCls}
+                value={params.sampai}
+                onChange={(e) =>
+                  muat({ ...params, sampai: e.target.value, halaman: 1 })
+                }
+              />
+              {params.q || params.dari || params.sampai || params.sort ? (
+                <TombolSekunder
+                  onClick={() =>
+                    muat({ ...AWAL_PERMINTAAN, status: params.status })
+                  }
+                >
+                  Reset
+                </TombolSekunder>
+              ) : null}
+            </div>
+          </div>
+        }
+      />
     </div>
   )
 }

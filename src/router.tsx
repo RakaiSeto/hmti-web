@@ -1,6 +1,7 @@
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 
 import { PendingKonten } from './components/admin/Skeleton'
+import { parseSearchParams, stringifySearchParams } from './lib/searchParams'
 import { routeTree } from './routeTree.gen'
 
 // Loads TanStack Start's router type augmentations. Without this import in the program,
@@ -12,6 +13,10 @@ import type {} from '@tanstack/react-start'
 export function getRouter() {
   const router = createTanStackRouter({
     routeTree,
+    // Plain string search params instead of the default JSON encoding, so a numeric-looking
+    // search stays `?q=5` rather than `?q=%225%22` (see lib/searchParams.ts).
+    parseSearch: parseSearchParams,
+    stringifySearch: stringifySearchParams,
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,

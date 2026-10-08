@@ -1,4 +1,5 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
+import type { ColumnDef } from '@tanstack/react-table'
 import { hanyaAdmin } from '../../../lib/routeGuards'
 import { useState } from 'react'
 
@@ -7,21 +8,41 @@ import {
   hapusKategori,
   simpanKategori,
 } from '../../../server/barang'
+import type { BarisKategori } from '../../../server/barang'
+import { TabelData } from '../../../components/TabelData'
 import {
-  BarisTabel,
   Card,
-  DataTable,
   Field,
+  KotakCari,
   PageHeader,
-  Sel,
+  TombolAksi,
   TombolSekunder,
   TombolUtama,
   inputCls,
 } from '../../../components/ui'
+import type { ArahUrut } from '../../../lib/tabel'
+import { PER_HALAMAN } from '../../../lib/tabel'
+import { useDaftar } from '../../../lib/useDaftar'
+
+interface ParamsKategori {
+  q: string
+  sort: string
+  dir: ArahUrut
+  halaman: number
+  perHalaman: number
+}
+
+const AWAL_KATEGORI: ParamsKategori = {
+  q: '',
+  sort: '',
+  dir: 'asc',
+  halaman: 1,
+  perHalaman: PER_HALAMAN,
+}
 
 export const Route = createFileRoute('/admin/kategori/')({
   beforeLoad: hanyaAdmin,
-  loader: () => daftarKategori(),
+  loader: () => daftarKategori({ data: AWAL_KATEGORI }),
   component: Kategori,
 })
 
@@ -33,40 +54,90 @@ export const Route = createFileRoute('/admin/kategori/')({
  * than failing silently.
  */
 function Kategori() {
-  const rows = Route.useLoaderData()
-  const router = useRouter()
+  const awal = Route.useLoaderData()
+  const { params, hasil, sibuk, muat } = useDaftar(
+    daftarKategori,
+    awal,
+    AWAL_KATEGORI,
+  )
   const [nama, setNama] = useState('')
   const [editId, setEditId] = useState<string | null>(null)
   const [pesan, setPesan] = useState<string | null>(null)
-  const [sibuk, setSibuk] = useState(false)
+  const [sibukSimpan, setSibukSimpan] = useState(false)
 
   async function simpan() {
-    setSibuk(true)
+    setSibukSimpan(true)
     setPesan(null)
-    const hasil = await simpanKategori({
+    const r = await simpanKategori({
       data: { id: editId ?? undefined, nama },
     })
-    setSibuk(false)
-    if (!hasil.ok) {
-      setPesan(hasil.pesan)
+    setSibukSimpan(false)
+    if (!r.ok) {
+      setPesan(r.pesan)
       return
     }
     setNama('')
     setEditId(null)
-    await router.invalidate()
+    muat(params)
   }
 
   async function hapus(id: string) {
-    setSibuk(true)
+    setSibukSimpan(true)
     setPesan(null)
-    const hasil = await hapusKategori({ data: { id } })
-    setSibuk(false)
-    if (!hasil.ok) {
-      setPesan(hasil.pesan)
+    const r = await hapusKategori({ data: { id } })
+    setSibukSimpan(false)
+    if (!r.ok) {
+      setPesan(r.pesan)
       return
     }
-    await router.invalidate()
+    muat(params)
   }
+
+  const columns: ColumnDef<BarisKategori, unknown>[] = [
+    {
+      id: 'nama',
+      accessorFn: (k) => k.nama,
+      header: 'Kategori',
+      cell: ({ row }) => (
+        <span className="font-semibold text-neutral-intense">
+          {row.original.nama}
+        </span>
+      ),
+    },
+    {
+      id: 'jumlah',
+      accessorFn: (k) => k.jumlah_barang,
+      header: 'Jumlah barang',
+      cell: ({ row }) => `${row.original.jumlah_barang} barang`,
+    },
+    {
+      id: 'aksi',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const k = row.original
+        return (
+          <span className="flex items-center gap-2 whitespace-nowrap">
+            <TombolAksi
+              onClick={() => {
+                setEditId(k.id)
+                setNama(k.nama)
+              }}
+            >
+              Ubah
+            </TombolAksi>
+            <TombolAksi
+              bahaya
+              disabled={sibukSimpan}
+              onClick={() => void hapus(k.id)}
+            >
+              Hapus
+            </TombolAksi>
+          </span>
+        )
+      },
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -96,7 +167,7 @@ function Kategori() {
           </Field>
         </div>
         <TombolUtama
-          disabled={sibuk || nama.trim().length < 2}
+          disabled={sibukSimpan || nama.trim().length < 2}
           onClick={() => void simpan()}
         >
           {editId ? 'Simpan perubahan' : 'Tambah kategori'}
@@ -113,35 +184,41 @@ function Kategori() {
         ) : null}
       </Card>
 
-      <DataTable head={['Kategori', 'Jumlah barang', '']}>
-        {rows.map((k) => (
-          <BarisTabel key={k.id}>
-            <Sel className="font-semibold text-neutral-intense">{k.nama}</Sel>
-            <Sel>{k.jumlah_barang} barang</Sel>
-            <Sel className="whitespace-nowrap">
-              <button
-                type="button"
-                className="text-sm font-semibold text-accent hover:underline"
-                onClick={() => {
-                  setEditId(k.id)
-                  setNama(k.nama)
-                }}
-              >
-                Ubah
-              </button>
-              <span className="mx-2 text-text-disabled">·</span>
-              <button
-                type="button"
-                className="text-sm font-semibold text-error hover:underline"
-                disabled={sibuk}
-                onClick={() => void hapus(k.id)}
-              >
-                Hapus
-              </button>
-            </Sel>
-          </BarisTabel>
-        ))}
-      </DataTable>
+      <TabelData
+        columns={columns}
+        data={hasil.rows}
+        total={hasil.total}
+        totalSemua={hasil.totalSemua}
+        perHalaman={hasil.perHalaman}
+        halaman={hasil.halaman}
+        sort={params.sort}
+        dir={params.dir}
+        sibuk={sibuk}
+        onSort={(sort, dir) =>
+          muat({ ...params, sort: sort ?? '', dir, halaman: 1 })
+        }
+        onHalaman={(h) => muat({ ...params, halaman: h })}
+        onPerHalaman={(n) => muat({ ...params, perHalaman: n, halaman: 1 })}
+        kosong={{
+          title: 'Tidak ada kategori',
+          body: 'Tidak ada kategori yang cocok dengan pencarian ini.',
+        }}
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2">
+            <KotakCari
+              nilai={params.q}
+              onCari={(q) => muat({ ...params, q, halaman: 1 })}
+              placeholder="Cari nama kategori…"
+              className="min-w-56 flex-1"
+            />
+            {params.q || params.sort ? (
+              <TombolSekunder onClick={() => muat(AWAL_KATEGORI)}>
+                Reset
+              </TombolSekunder>
+            ) : null}
+          </div>
+        }
+      />
 
       <p className="text-xs text-text-soft">
         Kategori yang masih dipakai barang tidak dapat dihapus. Pindahkan

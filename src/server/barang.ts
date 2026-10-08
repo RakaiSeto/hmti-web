@@ -14,20 +14,71 @@ import { logAksi } from '#/domain/log'
 import { todayWib } from '#/lib/dates'
 import { butuhAdmin, butuhSesi } from '#/lib/guards'
 import { newId } from '#/lib/id'
+import type { HasilHalaman } from '#/lib/tabel'
+import { PER_HALAMAN } from '#/lib/tabel'
+import { ambilHalaman, pilihUrut, susunWhere } from './query'
 
 /* --- categories (FR10) ---------------------------------------------------- */
 
-export const daftarKategori = createServerFn({ method: 'GET' }).handler(
-  async () => {
+/** Sortable category columns, keyed by the `sort` search param. */
+const URUT_KATEGORI: Record<string, string> = {
+  nama: 'k.nama',
+  jumlah: 'jumlah_barang',
+}
+
+export interface BarisKategori {
+  id: string
+  nama: string
+  jumlah_barang: number
+}
+
+export const daftarKategori = createServerFn({ method: 'GET' })
+  .validator(
+    z
+      .object({
+        q: z.string().default(''),
+        sort: z.string().default(''),
+        dir: z.enum(['asc', 'desc']).default('asc'),
+        halaman: z.number().int().min(1).default(1),
+        perHalaman: z.number().int().default(PER_HALAMAN),
+      })
+      .default({
+        q: '',
+        sort: '',
+        dir: 'asc',
+        halaman: 1,
+        perHalaman: PER_HALAMAN,
+      }),
+  )
+  .handler(async ({ data }): Promise<HasilHalaman<BarisKategori>> => {
     await butuhSesi()
-    const { results } = await env.DB.prepare(
-      `SELECT k.id, k.nama,
-            (SELECT COUNT(*) FROM barang b WHERE b.kategori_id = k.id) AS jumlah_barang
-     FROM kategori k ORDER BY k.nama ASC`,
-    ).all<{ id: string; nama: string; jumlah_barang: number }>()
-    return results
-  },
-)
+    const clauses: string[] = []
+    const params: unknown[] = []
+    if (data.q.trim()) {
+      clauses.push('k.nama LIKE ?')
+      params.push(`%${data.q.trim()}%`)
+    }
+    const where = susunWhere(clauses)
+    const order = pilihUrut(
+      URUT_KATEGORI,
+      data.sort,
+      data.dir,
+      'ORDER BY k.nama ASC',
+    )
+    return ambilHalaman<BarisKategori>(
+      env.DB,
+      {
+        count: `SELECT COUNT(*) AS c FROM kategori k ${where}`,
+        countSemua: `SELECT COUNT(*) AS c FROM kategori k`,
+        rows: `SELECT k.id, k.nama,
+                      (SELECT COUNT(*) FROM barang b WHERE b.kategori_id = k.id) AS jumlah_barang
+               FROM kategori k ${where} ${order}`,
+      },
+      params,
+      data.halaman,
+      data.perHalaman,
+    )
+  })
 
 /**
  * Just `{id, nama}`, for populating a select. Available to both roles: a PJ inventaris
@@ -132,16 +183,35 @@ export interface BarangRingkas {
   statusKetersediaan: 'Tersedia' | 'Terbatas' | 'Habis'
 }
 
+/** Sortable item columns, keyed by the `sort` search param. */
+const URUT_BARANG: Record<string, string> = {
+  nama: 'b.nama',
+  kategori: 'k.nama',
+  jumlah: 'b.jumlah',
+  kondisi: 'b.kondisi',
+}
+
 export const daftarBarang = createServerFn({ method: 'GET' })
   .validator(
     z
       .object({
         q: z.string().default(''),
         kategoriId: z.string().default(''),
+        sort: z.string().default(''),
+        dir: z.enum(['asc', 'desc']).default('asc'),
+        halaman: z.number().int().min(1).default(1),
+        perHalaman: z.number().int().default(PER_HALAMAN),
       })
-      .default({ q: '', kategoriId: '' }),
+      .default({
+        q: '',
+        kategoriId: '',
+        sort: '',
+        dir: 'asc',
+        halaman: 1,
+        perHalaman: PER_HALAMAN,
+      }),
   )
-  .handler(async ({ data }): Promise<BarangRingkas[]> => {
+  .handler(async ({ data }): Promise<HasilHalaman<BarangRingkas>> => {
     await butuhSesi()
     const clauses: string[] = []
     const params: unknown[] = []
@@ -154,44 +224,62 @@ export const daftarBarang = createServerFn({ method: 'GET' })
       clauses.push('b.kategori_id = ?')
       params.push(data.kategoriId)
     }
-    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''
-
-    const { results } = await env.DB.prepare(
-      `SELECT b.*, k.nama AS kategori_nama FROM barang b
-       JOIN kategori k ON k.id = b.kategori_id
-       ${where} ORDER BY b.nama ASC`,
+    const where = susunWhere(clauses)
+    const order = pilihUrut(
+      URUT_BARANG,
+      data.sort,
+      data.dir,
+      'ORDER BY b.nama ASC',
     )
-      .bind(...params)
-      .all<Record<string, unknown>>()
+
+    const halaman = await ambilHalaman<Record<string, unknown>>(
+      env.DB,
+      {
+        count: `SELECT COUNT(*) AS c FROM barang b
+                JOIN kategori k ON k.id = b.kategori_id ${where}`,
+        countSemua: `SELECT COUNT(*) AS c FROM barang b
+                     JOIN kategori k ON k.id = b.kategori_id`,
+        rows: `SELECT b.*, k.nama AS kategori_nama FROM barang b
+               JOIN kategori k ON k.id = b.kategori_id
+               ${where} ${order}`,
+      },
+      params,
+      data.halaman,
+      data.perHalaman,
+    )
 
     // Availability for "today" — the list's badge is a right-now reading, not a window.
+    // Computed for this page's rows only, which is the point of paginating.
     const hariIni = todayWib()
     const besok = new Date(`${hariIni}T00:00:00Z`)
     besok.setUTCDate(besok.getUTCDate() + 1)
     const { ketersediaanBanyak } = await import('#/domain/availability')
     const map = await ketersediaanBanyak(
-      results.map((r) => r.id as string),
+      halaman.rows.map((r) => r.id as string),
       hariIni,
       besok.toISOString().slice(0, 10),
     )
 
-    return results.map((r) => {
-      const k = map.get(r.id as string)
-      const tersedia = k?.tersedia ?? 0
-      return {
-        id: r.id as string,
-        nama: r.nama as string,
-        kategoriId: r.kategori_id as string,
-        kategoriNama: r.kategori_nama as string,
-        jumlah: r.jumlah as number,
-        kondisi: r.kondisi as string,
-        lokasi: (r.lokasi as string | null) ?? null,
-        deskripsi: (r.deskripsi as string | null) ?? null,
-        fotoPath: (r.foto_path as string | null) ?? null,
-        tersedia,
-        statusKetersediaan: statusDari(tersedia, r.jumlah as number),
-      }
-    })
+    return {
+      ...halaman,
+      rows: halaman.rows.map((r) => {
+        const k = map.get(r.id as string)
+        const tersedia = k?.tersedia ?? 0
+        return {
+          id: r.id as string,
+          nama: r.nama as string,
+          kategoriId: r.kategori_id as string,
+          kategoriNama: r.kategori_nama as string,
+          jumlah: r.jumlah as number,
+          kondisi: r.kondisi as string,
+          lokasi: (r.lokasi as string | null) ?? null,
+          deskripsi: (r.deskripsi as string | null) ?? null,
+          fotoPath: (r.foto_path as string | null) ?? null,
+          tersedia,
+          statusKetersediaan: statusDari(tersedia, r.jumlah as number),
+        }
+      }),
+    }
   })
 
 export const ambilBarang = createServerFn({ method: 'GET' })

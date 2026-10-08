@@ -10,28 +10,109 @@ import { PERAN } from '#/db/schema'
 import { logAksi } from '#/domain/log'
 import { geserBulan, todayWib } from '#/lib/dates'
 import { butuhAdmin, butuhSesi } from '#/lib/guards'
+import type { HasilHalaman } from '#/lib/tabel'
+import { PER_HALAMAN } from '#/lib/tabel'
+import { ambilHalaman, pilihUrut, susunWhere } from './query'
 
 /* --- accounts (FR08) ------------------------------------------------------ */
 
-export const daftarPengguna = createServerFn({ method: 'GET' }).handler(
-  async () => {
+export interface BarisPengguna {
+  id: string
+  nama: string
+  email: string
+  peran: string
+  createdAt: Date
+}
+
+/** Sortable account columns, keyed by the `sort` search param. */
+const URUT_PENGGUNA: Record<string, string> = {
+  nama: 'u.name',
+  email: 'u.email',
+  peran: 'u.peran',
+  dibuat: 'u.created_at',
+}
+
+export const daftarPengguna = createServerFn({ method: 'GET' })
+  .validator(
+    z
+      .object({
+        q: z.string().default(''),
+        peran: z.string().default(''),
+        sort: z.string().default(''),
+        dir: z.enum(['asc', 'desc']).default('asc'),
+        halaman: z.number().int().min(1).default(1),
+        perHalaman: z.number().int().default(PER_HALAMAN),
+      })
+      .default({
+        q: '',
+        peran: '',
+        sort: '',
+        dir: 'asc',
+        halaman: 1,
+        perHalaman: PER_HALAMAN,
+      }),
+  )
+  .handler(async ({ data }): Promise<HasilHalaman<BarisPengguna>> => {
     await butuhAdmin()
-    const { results } = await env.DB.prepare(
-      `SELECT id, name, email, peran, created_at FROM user ORDER BY peran ASC, name ASC`,
-    ).all<{
+    const clauses: string[] = []
+    const params: unknown[] = []
+    if (data.q.trim()) {
+      clauses.push('(u.name LIKE ? OR u.email LIKE ?)')
+      const like = `%${data.q.trim()}%`
+      params.push(like, like)
+    }
+    if (data.peran) {
+      clauses.push('u.peran = ?')
+      params.push(data.peran)
+    }
+    const where = susunWhere(clauses)
+    const order = pilihUrut(
+      URUT_PENGGUNA,
+      data.sort,
+      data.dir,
+      'ORDER BY u.peran ASC, u.name ASC',
+    )
+    const hasil = await ambilHalaman<{
       id: string
       name: string
       email: string
       peran: string
       created_at: number
-    }>()
-    return results.map((r) => ({
-      id: r.id,
-      nama: r.name,
-      email: r.email,
-      peran: r.peran,
-      createdAt: new Date(r.created_at * 1000),
-    }))
+    }>(
+      env.DB,
+      {
+        count: `SELECT COUNT(*) AS c FROM user u ${where}`,
+        countSemua: `SELECT COUNT(*) AS c FROM user u`,
+        rows: `SELECT u.id, u.name, u.email, u.peran, u.created_at
+               FROM user u ${where} ${order}`,
+      },
+      params,
+      data.halaman,
+      data.perHalaman,
+    )
+    return {
+      ...hasil,
+      rows: hasil.rows.map((r) => ({
+        id: r.id,
+        nama: r.name,
+        email: r.email,
+        peran: r.peran,
+        createdAt: new Date(r.created_at * 1000),
+      })),
+    }
+  })
+
+/**
+ * Every account's id and name, unpaginated, for the activity log's user filter — the same
+ * split as `daftarKategori`/`daftarKategoriRef`: the table is paged, the select is not.
+ */
+export const daftarPenggunaRef = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<Array<{ id: string; nama: string }>> => {
+    await butuhAdmin()
+    const { results } = await env.DB.prepare(
+      `SELECT id, name FROM user ORDER BY peran ASC, name ASC`,
+    ).all<{ id: string; name: string }>()
+    return results.map((r) => ({ id: r.id, nama: r.name }))
   },
 )
 
@@ -181,6 +262,14 @@ export const ubahProfilSendiri = createServerFn({ method: 'POST' })
 
 /* --- activity log (FR21) -------------------------------------------------- */
 
+/** Sortable log columns, keyed by the `sort` search param. */
+const URUT_LOG: Record<string, string> = {
+  waktu: 'l.waktu',
+  pengguna: 'COALESCE(l.pengguna_nama, u.name)',
+  aksi: 'l.aksi',
+  entitas: 'l.entitas',
+}
+
 /**
  * The log is read-only by construction: this is the only function in the codebase that
  * touches `log_aktivitas` for reading, and no update or delete statement exists anywhere.
@@ -192,48 +281,73 @@ export const daftarLog = createServerFn({ method: 'GET' })
         penggunaId: z.string().default(''),
         dari: z.string().default(''),
         sampai: z.string().default(''),
+        q: z.string().default(''),
+        sort: z.string().default(''),
+        dir: z.enum(['asc', 'desc']).default('asc'),
         halaman: z.number().int().min(1).default(1),
+        perHalaman: z.number().int().default(PER_HALAMAN),
       })
-      .default({ penggunaId: '', dari: '', sampai: '', halaman: 1 }),
+      .default({
+        penggunaId: '',
+        dari: '',
+        sampai: '',
+        q: '',
+        sort: '',
+        dir: 'asc',
+        halaman: 1,
+        perHalaman: PER_HALAMAN,
+      }),
   )
   .handler(async ({ data }) => {
     await butuhAdmin()
-    const PER_HALAMAN = 25
     const clauses: string[] = []
     const params: unknown[] = []
     if (data.penggunaId) {
-      clauses.push('pengguna_id = ?')
+      clauses.push('l.pengguna_id = ?')
       params.push(data.penggunaId)
     }
     if (data.dari) {
-      clauses.push(`waktu >= strftime('%s', ?)`)
+      clauses.push(`l.waktu >= strftime('%s', ?)`)
       params.push(`${data.dari} 00:00:00`)
     }
     if (data.sampai) {
-      clauses.push(`waktu <= strftime('%s', ?)`)
+      clauses.push(`l.waktu <= strftime('%s', ?)`)
       params.push(`${data.sampai} 23:59:59`)
     }
-    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''
-
-    const total = await env.DB.prepare(
-      `SELECT COUNT(*) AS c FROM log_aktivitas ${where}`,
+    if (data.q.trim()) {
+      clauses.push(
+        '(l.pengguna_nama LIKE ? OR u.name LIKE ? OR l.aksi LIKE ? OR l.entitas LIKE ?)',
+      )
+      const like = `%${data.q.trim()}%`
+      params.push(like, like, like, like)
+    }
+    const where = susunWhere(clauses)
+    const order = pilihUrut(
+      URUT_LOG,
+      data.sort,
+      data.dir,
+      'ORDER BY l.waktu DESC',
     )
-      .bind(...params)
-      .first<{ c: number }>()
 
-    const { results } = await env.DB.prepare(
-      `SELECT l.*, u.name AS nama_sekarang FROM log_aktivitas l
-       LEFT JOIN user u ON u.id = l.pengguna_id
-       ${where} ORDER BY l.waktu DESC LIMIT ? OFFSET ?`,
+    const hasil = await ambilHalaman<Record<string, unknown>>(
+      env.DB,
+      {
+        count: `SELECT COUNT(*) AS c FROM log_aktivitas l
+                LEFT JOIN user u ON u.id = l.pengguna_id ${where}`,
+        countSemua: `SELECT COUNT(*) AS c FROM log_aktivitas l
+                     LEFT JOIN user u ON u.id = l.pengguna_id`,
+        rows: `SELECT l.*, u.name AS nama_sekarang FROM log_aktivitas l
+               LEFT JOIN user u ON u.id = l.pengguna_id
+               ${where} ${order}`,
+      },
+      params,
+      data.halaman,
+      data.perHalaman,
     )
-      .bind(...params, PER_HALAMAN, (data.halaman - 1) * PER_HALAMAN)
-      .all<Record<string, unknown>>()
 
     return {
-      total: total?.c ?? 0,
-      perHalaman: PER_HALAMAN,
-      halaman: data.halaman,
-      rows: results.map((r) => ({
+      ...hasil,
+      rows: hasil.rows.map((r) => ({
         id: r.id as string,
         pengguna:
           (r.pengguna_nama as string | null) ??
@@ -431,76 +545,187 @@ export const ringkasanDasbor = createServerFn({ method: 'GET' }).handler(
 
 /* --- reports (FR18) ------------------------------------------------------- */
 
-export const laporanPeminjaman = createServerFn({ method: 'GET' })
-  .validator(
-    z
-      .object({
-        dari: z.string().default(''),
-        sampai: z.string().default(''),
-        status: z.string().default('semua'),
-      })
-      .default({ dari: '', sampai: '', status: 'semua' }),
-  )
-  .handler(async ({ data }) => {
-    await butuhSesi()
-    const clauses: string[] = []
-    const params: unknown[] = []
-    if (data.dari) {
-      clauses.push('p.tgl_pinjam >= ?')
-      params.push(data.dari)
-    }
-    if (data.sampai) {
-      clauses.push('p.tgl_pinjam <= ?')
-      params.push(data.sampai)
-    }
-    if (data.status !== 'semua') {
-      clauses.push('p.status = ?')
-      params.push(data.status)
-    }
-    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''
+/** One borrowing-history row, as the table and the CSV both show it. */
+export interface BarisLaporan {
+  kode: string
+  organisasi: string
+  penanggungJawab: string
+  tglPinjam: string
+  tglKembali: string
+  keperluan: string
+  status: string
+  barang: string
+}
 
+interface FilterLaporan {
+  dari: string
+  sampai: string
+  status: string
+  q: string
+}
+
+const SELECT_LAPORAN = `SELECT p.kode, p.organisasi, p.penanggung_jawab, p.tgl_pinjam, p.tgl_kembali,
+        p.keperluan, p.status,
+        (SELECT GROUP_CONCAT(b.nama || ' x' || pb.jumlah, ', ')
+         FROM pengajuan_barang pb JOIN barang b ON b.id = pb.barang_id
+         WHERE pb.pengajuan_id = p.id) AS barang
+ FROM pengajuan p`
+
+function whereLaporan(data: FilterLaporan): {
+  where: string
+  params: unknown[]
+} {
+  const clauses: string[] = []
+  const params: unknown[] = []
+  if (data.dari) {
+    clauses.push('p.tgl_pinjam >= ?')
+    params.push(data.dari)
+  }
+  if (data.sampai) {
+    clauses.push('p.tgl_pinjam <= ?')
+    params.push(data.sampai)
+  }
+  if (data.status !== 'semua') {
+    clauses.push('p.status = ?')
+    params.push(data.status)
+  }
+  if (data.q.trim()) {
+    clauses.push(
+      '(p.kode LIKE ? OR p.organisasi LIKE ? OR p.penanggung_jawab LIKE ?)',
+    )
+    const like = `%${data.q.trim()}%`
+    params.push(like, like, like)
+  }
+  return { where: susunWhere(clauses), params }
+}
+
+function petakanLaporan(r: Record<string, unknown>): BarisLaporan {
+  return {
+    kode: r.kode as string,
+    organisasi: r.organisasi as string,
+    penanggungJawab: r.penanggung_jawab as string,
+    tglPinjam: r.tgl_pinjam as string,
+    tglKembali: r.tgl_kembali as string,
+    keperluan: r.keperluan as string,
+    status: r.status as string,
+    barang: (r.barang as string | null) ?? '—',
+  }
+}
+
+/** Sortable report columns, keyed by the `sort` search param. */
+const URUT_LAPORAN: Record<string, string> = {
+  kode: 'p.kode',
+  organisasi: 'p.organisasi',
+  pinjam: 'p.tgl_pinjam',
+  kembali: 'p.tgl_kembali',
+  status: 'p.status',
+}
+
+const MasukanLaporan = z.object({
+  dari: z.string().default(''),
+  sampai: z.string().default(''),
+  status: z.string().default('semua'),
+  q: z.string().default(''),
+  sort: z.string().default(''),
+  dir: z.enum(['asc', 'desc']).default('asc'),
+  halaman: z.number().int().min(1).default(1),
+  perHalaman: z.number().int().default(PER_HALAMAN),
+})
+
+export const laporanPeminjaman = createServerFn({ method: 'GET' })
+  .validator(MasukanLaporan)
+  .handler(async ({ data }): Promise<HasilHalaman<BarisLaporan>> => {
+    await butuhSesi()
+    const { where, params } = whereLaporan(data)
+    const order = pilihUrut(
+      URUT_LAPORAN,
+      data.sort,
+      data.dir,
+      'ORDER BY p.tgl_pinjam DESC',
+    )
+    const hasil = await ambilHalaman<Record<string, unknown>>(
+      env.DB,
+      {
+        count: `SELECT COUNT(*) AS c FROM pengajuan p ${where}`,
+        countSemua: `SELECT COUNT(*) AS c FROM pengajuan p`,
+        rows: `${SELECT_LAPORAN} ${where} ${order}`,
+      },
+      params,
+      data.halaman,
+      data.perHalaman,
+    )
+    return { ...hasil, rows: hasil.rows.map(petakanLaporan) }
+  })
+
+/**
+ * Every matching row, for CSV export. The table shows one page; the file must not, or an
+ * export of a 200-row report would silently contain 25.
+ */
+export const eksporPeminjaman = createServerFn({ method: 'GET' })
+  .validator(
+    z.object({
+      dari: z.string().default(''),
+      sampai: z.string().default(''),
+      status: z.string().default('semua'),
+      q: z.string().default(''),
+    }),
+  )
+  .handler(async ({ data }): Promise<BarisLaporan[]> => {
+    await butuhSesi()
+    const { where, params } = whereLaporan(data)
     const { results } = await env.DB.prepare(
-      `SELECT p.kode, p.organisasi, p.penanggung_jawab, p.tgl_pinjam, p.tgl_kembali,
-              p.keperluan, p.status,
-              (SELECT GROUP_CONCAT(b.nama || ' x' || pb.jumlah, ', ')
-               FROM pengajuan_barang pb JOIN barang b ON b.id = pb.barang_id
-               WHERE pb.pengajuan_id = p.id) AS barang
-       FROM pengajuan p ${where} ORDER BY p.tgl_pinjam DESC`,
+      `${SELECT_LAPORAN} ${where} ORDER BY p.tgl_pinjam DESC`,
     )
       .bind(...params)
       .all<Record<string, unknown>>()
-
-    return results.map((r) => ({
-      kode: r.kode as string,
-      organisasi: r.organisasi as string,
-      penanggungJawab: r.penanggung_jawab as string,
-      tglPinjam: r.tgl_pinjam as string,
-      tglKembali: r.tgl_kembali as string,
-      keperluan: r.keperluan as string,
-      status: r.status as string,
-      barang: (r.barang as string | null) ?? '—',
-    }))
+    return results.map(petakanLaporan)
   })
 
-/** Stock recap, including the damage/loss tally BR05 produces (FR18). */
-export const rekapStok = createServerFn({ method: 'GET' }).handler(async () => {
-  await butuhSesi()
-  const { results } = await env.DB.prepare(
-    `SELECT b.id, b.nama, k.nama AS kategori, b.jumlah, b.kondisi,
-            COALESCE((
-              SELECT SUM(pb.jumlah) FROM pengajuan_barang pb
-              JOIN pengajuan p ON p.id = pb.pengajuan_id
-              WHERE pb.barang_id = b.id AND p.status = 'Dipinjam'
-            ), 0) AS sedang_dipinjam,
-            COALESCE((
-              SELECT SUM(pi.jumlah) FROM pengembalian_item pi
-              WHERE pi.barang_id = b.id AND pi.kondisi IN ('rusak', 'hilang')
-            ), 0) AS rusak_hilang
-     FROM barang b JOIN kategori k ON k.id = b.kategori_id
-     ORDER BY k.nama ASC, b.nama ASC`,
-  ).all<Record<string, unknown>>()
+/** One stock-recap row, including the damage/loss tally BR05 produces. */
+export interface BarisStok {
+  id: string
+  nama: string
+  kategori: string
+  jumlah: number
+  kondisi: string
+  sedangDipinjam: number
+  rusakHilang: number
+}
 
-  return results.map((r) => ({
+interface FilterStok {
+  q: string
+  kategoriId: string
+}
+
+const SELECT_STOK = `SELECT b.id, b.nama, k.nama AS kategori, b.jumlah, b.kondisi,
+        COALESCE((
+          SELECT SUM(pb.jumlah) FROM pengajuan_barang pb
+          JOIN pengajuan p ON p.id = pb.pengajuan_id
+          WHERE pb.barang_id = b.id AND p.status = 'Dipinjam'
+        ), 0) AS sedang_dipinjam,
+        COALESCE((
+          SELECT SUM(pi.jumlah) FROM pengembalian_item pi
+          WHERE pi.barang_id = b.id AND pi.kondisi IN ('rusak', 'hilang')
+        ), 0) AS rusak_hilang
+ FROM barang b JOIN kategori k ON k.id = b.kategori_id`
+
+function whereStok(data: FilterStok): { where: string; params: unknown[] } {
+  const clauses: string[] = []
+  const params: unknown[] = []
+  if (data.q.trim()) {
+    clauses.push('(b.nama LIKE ? OR k.nama LIKE ?)')
+    const like = `%${data.q.trim()}%`
+    params.push(like, like)
+  }
+  if (data.kategoriId) {
+    clauses.push('b.kategori_id = ?')
+    params.push(data.kategoriId)
+  }
+  return { where: susunWhere(clauses), params }
+}
+
+function petakanStok(r: Record<string, unknown>): BarisStok {
+  return {
     id: r.id as string,
     nama: r.nama as string,
     kategori: r.kategori as string,
@@ -508,5 +733,71 @@ export const rekapStok = createServerFn({ method: 'GET' }).handler(async () => {
     kondisi: r.kondisi as string,
     sedangDipinjam: r.sedang_dipinjam as number,
     rusakHilang: r.rusak_hilang as number,
-  }))
+  }
+}
+
+/** Sortable stock columns, keyed by the `sort` search param. */
+const URUT_STOK: Record<string, string> = {
+  nama: 'b.nama',
+  kategori: 'k.nama',
+  jumlah: 'b.jumlah',
+  kondisi: 'b.kondisi',
+  dipinjam: 'sedang_dipinjam',
+  rusak: 'rusak_hilang',
+}
+
+const MasukanStok = z.object({
+  q: z.string().default(''),
+  kategoriId: z.string().default(''),
+  sort: z.string().default(''),
+  dir: z.enum(['asc', 'desc']).default('asc'),
+  halaman: z.number().int().min(1).default(1),
+  perHalaman: z.number().int().default(PER_HALAMAN),
 })
+
+/** Stock recap, including the damage/loss tally BR05 produces (FR18). */
+export const rekapStok = createServerFn({ method: 'GET' })
+  .validator(MasukanStok)
+  .handler(async ({ data }): Promise<HasilHalaman<BarisStok>> => {
+    await butuhSesi()
+    const { where, params } = whereStok(data)
+    const order = pilihUrut(
+      URUT_STOK,
+      data.sort,
+      data.dir,
+      'ORDER BY k.nama ASC, b.nama ASC',
+    )
+    const hasil = await ambilHalaman<Record<string, unknown>>(
+      env.DB,
+      {
+        count: `SELECT COUNT(*) AS c FROM barang b
+                JOIN kategori k ON k.id = b.kategori_id ${where}`,
+        countSemua: `SELECT COUNT(*) AS c FROM barang b
+                     JOIN kategori k ON k.id = b.kategori_id`,
+        rows: `${SELECT_STOK} ${where} ${order}`,
+      },
+      params,
+      data.halaman,
+      data.perHalaman,
+    )
+    return { ...hasil, rows: hasil.rows.map(petakanStok) }
+  })
+
+/** Every matching stock row, for CSV export. */
+export const eksporStok = createServerFn({ method: 'GET' })
+  .validator(
+    z.object({
+      q: z.string().default(''),
+      kategoriId: z.string().default(''),
+    }),
+  )
+  .handler(async ({ data }): Promise<BarisStok[]> => {
+    await butuhSesi()
+    const { where, params } = whereStok(data)
+    const { results } = await env.DB.prepare(
+      `${SELECT_STOK} ${where} ORDER BY k.nama ASC, b.nama ASC`,
+    )
+      .bind(...params)
+      .all<Record<string, unknown>>()
+    return results.map(petakanStok)
+  })

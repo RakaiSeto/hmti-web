@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * Small shared pieces of the design's app kit, used across the staff pages. Kept in one
@@ -132,17 +133,46 @@ export function Field({
 export const inputCls =
   'rounded-md border border-neutral-soft bg-surface-container px-3 py-2 text-sm font-normal text-text outline-none focus:border-accent disabled:opacity-60'
 
-/** The app kit's data table: a surface card, a header row, and zebra-free body rows. */
+/**
+ * A table row action: a small filled chip, sized like the design's `btn-sm`. `bahaya`
+ * swaps to the destructive colour.
+ */
+const AKSI =
+  'inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-1.5 text-sm font-semibold no-underline transition-colors hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60'
+
+const AKSI_NETRAL = `${AKSI} bg-neutral-subtle text-neutral-intense`
+
+const AKSI_BAHAYA = `${AKSI} bg-error-container text-error`
+
+export function TombolAksi({
+  children,
+  bahaya = false,
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { bahaya?: boolean }) {
+  return (
+    <button
+      {...rest}
+      type={rest.type ?? 'button'}
+      className={`${bahaya ? AKSI_BAHAYA : AKSI_NETRAL} ${rest.className ?? ''}`}
+    >
+      {children}
+    </button>
+  )
+}
+
+/**
+ * The app kit's static data table: a surface card, a header row, and zebra-free body
+ * rows. Used by the detail pages, whose tables are bounded by one record. The list pages
+ * use `TabelData`, which is driven by TanStack Table.
+ */
 export function DataTable({
   head,
   children,
   kosong,
-  kolom,
 }: {
   head: string[]
   children: React.ReactNode
   kosong?: string
-  kolom?: number
 }) {
   const adaIsi = Array.isArray(children)
     ? children.length > 0
@@ -153,10 +183,10 @@ export function DataTable({
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-neutral-soft">
-              {head.map((h) => (
+              {head.map((h, i) => (
                 <th
-                  key={h}
-                  className="px-4 py-3 text-left text-xs font-semibold tracking-loose text-text-soft uppercase"
+                  key={`${h}-${i}`}
+                  className="bg-neutral-subtle px-4 py-3 text-left text-xs font-bold tracking-loose text-text-soft uppercase"
                 >
                   {h}
                 </th>
@@ -171,10 +201,24 @@ export function DataTable({
           {kosong}
         </p>
       ) : null}
-      {!adaIsi && !kosong && kolom ? null : null}
     </div>
   )
 }
+
+/**
+ * The height every data row in the app shares — list rows in `TabelData` and detail rows
+ * in `BarisTabel` both carry it on their cells.
+ *
+ * It is fixed rather than content-driven: without it a table's rhythm changes with what
+ * happens to be in the columns (a one-line row here, a name-over-subtitle row there), and
+ * single-line tables come out visibly shorter than the rest. 4rem fits our tallest cell —
+ * a primary line over a muted second line — with room to spare, and the cells refuse to
+ * wrap, so a long value can never stretch one row past its neighbours.
+ */
+export const BARIS_TABEL = 'h-16'
+
+/** A body cell: the row height, no wrapping, and the shared padding. */
+export const SEL_TABEL = `px-4 py-3 align-middle text-text whitespace-nowrap ${BARIS_TABEL}`
 
 export function BarisTabel({ children }: { children: React.ReactNode }) {
   return (
@@ -191,10 +235,69 @@ export function Sel({
   children: React.ReactNode
   className?: string
 }) {
+  return <td className={`${SEL_TABEL} ${className}`}>{children}</td>
+}
+
+/**
+ * A debounced search box, wired to the route's `q` param.
+ *
+ * `nilai` is the committed value from the list params. Typing updates local state and,
+ * 300 ms after the last keystroke, calls `onCari` — unless the value came back from the
+ * server, in which case there is nothing to search. Enter searches immediately.
+ *
+ * The `terkirim` ref is what keeps a slow round trip from clobbering the input: only a
+ * value we did not send ourselves (Reset, or any change we did not originate) is adopted
+ * into the field.
+ */
+export function KotakCari({
+  nilai,
+  onCari,
+  placeholder,
+  className = '',
+}: {
+  nilai: string
+  onCari: (teks: string) => void
+  placeholder?: string
+  className?: string
+}) {
+  const [teks, setTeks] = useState(nilai)
+  const cb = useRef(onCari)
+  const terkirim = useRef(nilai)
+
+  useEffect(() => {
+    cb.current = onCari
+  })
+
+  useEffect(() => {
+    if (nilai === terkirim.current) return
+    terkirim.current = nilai
+    setTeks(nilai)
+  }, [nilai])
+
+  useEffect(() => {
+    if (teks === terkirim.current) return
+    const t = setTimeout(() => {
+      terkirim.current = teks
+      cb.current(teks)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [teks])
+
   return (
-    <td className={`px-4 py-3 align-middle text-text ${className}`}>
-      {children}
-    </td>
+    <input
+      type="search"
+      className={`${inputCls} ${className}`}
+      placeholder={placeholder}
+      value={teks}
+      onChange={(e) => setTeks(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          terkirim.current = teks
+          cb.current(teks)
+        }
+      }}
+    />
   )
 }
 

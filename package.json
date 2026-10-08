@@ -29,6 +29,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-router": "1.170.41",
     "@tanstack/react-start": "1.168.60",
+    "@tanstack/react-table": "8.21.3",
     "better-auth": "^1.5.3",
     "drizzle-orm": "^0.45.1",
     "react": "^19.2.0",

@@ -1,4 +1,5 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
+import type { ColumnDef } from '@tanstack/react-table'
 import { hanyaAdmin } from '../../../lib/routeGuards'
 import { useState } from 'react'
 
@@ -9,22 +10,44 @@ import {
   hapusPengguna,
   simpanPengguna,
 } from '../../../server/admin'
+import type { BarisPengguna } from '../../../server/admin'
 import { LABEL_PERAN, labelPeran } from '../../../components/admin/nav'
+import { TabelData } from '../../../components/TabelData'
 import {
-  BarisTabel,
   Card,
-  DataTable,
   Field,
+  KotakCari,
   PageHeader,
-  Sel,
+  TombolAksi,
   TombolSekunder,
   TombolUtama,
   inputCls,
 } from '../../../components/ui'
+import type { ArahUrut } from '../../../lib/tabel'
+import { PER_HALAMAN } from '../../../lib/tabel'
+import { useDaftar } from '../../../lib/useDaftar'
+
+interface ParamsPengguna {
+  q: string
+  peran: string
+  sort: string
+  dir: ArahUrut
+  halaman: number
+  perHalaman: number
+}
+
+const AWAL_PENGGUNA: ParamsPengguna = {
+  q: '',
+  peran: '',
+  sort: '',
+  dir: 'asc',
+  halaman: 1,
+  perHalaman: PER_HALAMAN,
+}
 
 export const Route = createFileRoute('/admin/pengguna/')({
   beforeLoad: hanyaAdmin,
-  loader: () => daftarPengguna(),
+  loader: () => daftarPengguna({ data: AWAL_PENGGUNA }),
   component: Pengguna,
 })
 
@@ -37,8 +60,12 @@ export const Route = createFileRoute('/admin/pengguna/')({
  * bootstrap path by design.
  */
 function Pengguna() {
-  const rows = Route.useLoaderData()
-  const router = useRouter()
+  const awal = Route.useLoaderData()
+  const { params, hasil, sibuk, muat } = useDaftar(
+    daftarPengguna,
+    awal,
+    AWAL_PENGGUNA,
+  )
   const [form, setForm] = useState<{
     id?: string
     nama: string
@@ -47,13 +74,13 @@ function Pengguna() {
     sandi: string
   } | null>(null)
   const [pesan, setPesan] = useState<string | null>(null)
-  const [sibuk, setSibuk] = useState(false)
+  const [sibukSimpan, setSibukSimpan] = useState(false)
 
   async function simpan() {
     if (!form) return
-    setSibuk(true)
+    setSibukSimpan(true)
     setPesan(null)
-    const hasil = await simpanPengguna({
+    const r = await simpanPengguna({
       data: {
         id: form.id,
         nama: form.nama,
@@ -62,26 +89,97 @@ function Pengguna() {
         sandi: form.sandi || undefined,
       },
     })
-    setSibuk(false)
-    if (!hasil.ok) {
-      setPesan(hasil.pesan)
+    setSibukSimpan(false)
+    if (!r.ok) {
+      setPesan(r.pesan)
       return
     }
     setForm(null)
-    await router.invalidate()
+    muat(params)
   }
 
   async function hapus(id: string) {
-    setSibuk(true)
+    setSibukSimpan(true)
     setPesan(null)
-    const hasil = await hapusPengguna({ data: { id } })
-    setSibuk(false)
-    if (!hasil.ok) {
-      setPesan(hasil.pesan)
+    const r = await hapusPengguna({ data: { id } })
+    setSibukSimpan(false)
+    if (!r.ok) {
+      setPesan(r.pesan)
       return
     }
-    await router.invalidate()
+    muat(params)
   }
+
+  const columns: ColumnDef<BarisPengguna, unknown>[] = [
+    {
+      id: 'nama',
+      accessorFn: (u) => u.nama,
+      header: 'Nama',
+      cell: ({ row }) => (
+        <span className="font-semibold text-neutral-intense">
+          {row.original.nama}
+        </span>
+      ),
+    },
+    {
+      id: 'email',
+      accessorFn: (u) => u.email,
+      header: 'Email',
+      cell: ({ row }) => <span className="text-xs">{row.original.email}</span>,
+    },
+    {
+      id: 'peran',
+      accessorFn: (u) => u.peran,
+      header: 'Peran',
+      cell: ({ row }) => (
+        <span className="rounded-full bg-surface-container px-2.5 py-1 text-xs font-semibold text-text-soft">
+          {labelPeran(row.original.peran)}
+        </span>
+      ),
+    },
+    {
+      id: 'dibuat',
+      accessorFn: (u) => u.createdAt.getTime(),
+      header: 'Dibuat',
+      cell: ({ row }) => (
+        <span className="text-xs font-medium text-text-soft">
+          {formatWaktu(row.original.createdAt)}
+        </span>
+      ),
+    },
+    {
+      id: 'aksi',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const u = row.original
+        return (
+          <span className="flex items-center gap-2 whitespace-nowrap">
+            <TombolAksi
+              onClick={() =>
+                setForm({
+                  id: u.id,
+                  nama: u.nama,
+                  email: u.email,
+                  peran: u.peran,
+                  sandi: '',
+                })
+              }
+            >
+              Ubah
+            </TombolAksi>
+            <TombolAksi
+              bahaya
+              disabled={sibukSimpan}
+              onClick={() => void hapus(u.id)}
+            >
+              Hapus
+            </TombolAksi>
+          </span>
+        )
+      },
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -162,55 +260,63 @@ function Pengguna() {
           </div>
           <div className="flex justify-end gap-2">
             <TombolSekunder onClick={() => setForm(null)}>Batal</TombolSekunder>
-            <TombolUtama disabled={sibuk} onClick={() => void simpan()}>
-              {sibuk ? 'Menyimpan…' : 'Simpan'}
+            <TombolUtama disabled={sibukSimpan} onClick={() => void simpan()}>
+              {sibukSimpan ? 'Menyimpan…' : 'Simpan'}
             </TombolUtama>
           </div>
         </Card>
       ) : null}
 
-      <DataTable head={['Nama', 'Email', 'Peran', 'Dibuat', '']}>
-        {rows.map((u) => (
-          <BarisTabel key={u.id}>
-            <Sel className="font-semibold text-neutral-intense">{u.nama}</Sel>
-            <Sel className="text-xs">{u.email}</Sel>
-            <Sel>
-              <span className="rounded-full bg-surface-container px-2.5 py-1 text-xs font-semibold text-text-soft">
-                {labelPeran(u.peran)}
-              </span>
-            </Sel>
-            <Sel className="text-xs text-text-soft">
-              {formatWaktu(u.createdAt)}
-            </Sel>
-            <Sel className="whitespace-nowrap">
-              <button
-                type="button"
-                className="text-sm font-semibold text-accent hover:underline"
-                onClick={() =>
-                  setForm({
-                    id: u.id,
-                    nama: u.nama,
-                    email: u.email,
-                    peran: u.peran,
-                    sandi: '',
-                  })
-                }
-              >
-                Ubah
-              </button>
-              <span className="mx-2 text-text-disabled">·</span>
-              <button
-                type="button"
-                className="text-sm font-semibold text-error hover:underline"
-                disabled={sibuk}
-                onClick={() => void hapus(u.id)}
-              >
-                Hapus
-              </button>
-            </Sel>
-          </BarisTabel>
-        ))}
-      </DataTable>
+      <TabelData
+        columns={columns}
+        data={hasil.rows}
+        total={hasil.total}
+        totalSemua={hasil.totalSemua}
+        perHalaman={hasil.perHalaman}
+        halaman={hasil.halaman}
+        sort={params.sort}
+        dir={params.dir}
+        sibuk={sibuk}
+        onSort={(sort, dir) =>
+          muat({ ...params, sort: sort ?? '', dir, halaman: 1 })
+        }
+        onHalaman={(h) => muat({ ...params, halaman: h })}
+        onPerHalaman={(n) => muat({ ...params, perHalaman: n, halaman: 1 })}
+        kosong={{
+          title: 'Tidak ada akun',
+          body: 'Tidak ada akun yang cocok dengan filter ini.',
+        }}
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2">
+            <KotakCari
+              nilai={params.q}
+              onCari={(q) => muat({ ...params, q, halaman: 1 })}
+              placeholder="Cari nama atau email…"
+              className="min-w-56 flex-1"
+            />
+            <select
+              aria-label="Peran"
+              className={inputCls}
+              value={params.peran}
+              onChange={(e) =>
+                muat({ ...params, peran: e.target.value, halaman: 1 })
+              }
+            >
+              <option value="">Semua peran</option>
+              {PERAN.map((p) => (
+                <option key={p} value={p}>
+                  {LABEL_PERAN[p]}
+                </option>
+              ))}
+            </select>
+            {params.q || params.peran || params.sort ? (
+              <TombolSekunder onClick={() => muat(AWAL_PENGGUNA)}>
+                Reset
+              </TombolSekunder>
+            ) : null}
+          </div>
+        }
+      />
 
       <p className="text-xs text-text-soft">
         Akun admin pertama dibuat saat sistem dipasang. Anda tidak dapat

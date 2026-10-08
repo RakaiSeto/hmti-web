@@ -1,32 +1,44 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
 
 import { daftarBarang, daftarKategoriRef } from '../../../server/barang'
+import type { BarangRingkas } from '../../../server/barang'
 import { AvailabilityBadge } from '../../../components/StatusBadge'
+import { TabelData } from '../../../components/TabelData'
 import {
-  BarisTabel,
-  Card,
-  DataTable,
-  EmptyState,
+  KotakCari,
   PageHeader,
-  Sel,
-  TombolUtama,
+  TombolAksi,
+  TombolSekunder,
   inputCls,
 } from '../../../components/ui'
+import type { ArahUrut } from '../../../lib/tabel'
+import { PER_HALAMAN } from '../../../lib/tabel'
+import { useDaftar } from '../../../lib/useDaftar'
+
+interface ParamsBarang {
+  q: string
+  kategoriId: string
+  sort: string
+  dir: ArahUrut
+  halaman: number
+  perHalaman: number
+}
+
+const AWAL_BARANG: ParamsBarang = {
+  q: '',
+  kategoriId: '',
+  sort: '',
+  dir: 'asc',
+  halaman: 1,
+  perHalaman: PER_HALAMAN,
+}
 
 export const Route = createFileRoute('/admin/barang/')({
-  validateSearch: (
-    s: Record<string, unknown>,
-  ): { q?: string; kategori?: string } => ({
-    q: typeof s.q === 'string' ? s.q : undefined,
-    kategori: typeof s.kategori === 'string' ? s.kategori : undefined,
-  }),
-  loaderDeps: ({ search }) => ({
-    q: search.q ?? '',
-    kategoriId: search.kategori ?? '',
-  }),
-  loader: async ({ deps }) => ({
-    rows: await daftarBarang({ data: deps }),
+  // The first page is server-rendered; every change after that is fetched client-side, so
+  // the URL stays bare (see lib/useDaftar.ts).
+  loader: async () => ({
+    hasil: await daftarBarang({ data: AWAL_BARANG }),
     kategori: await daftarKategoriRef(),
   }),
   component: DaftarBarang,
@@ -37,12 +49,95 @@ export const Route = createFileRoute('/admin/barang/')({
  * because the role needs to look up stock but cannot change it (v2 role split).
  */
 function DaftarBarang() {
-  const { rows, kategori } = Route.useLoaderData()
+  const awal = Route.useLoaderData()
   const { sesi } = Route.useRouteContext()
-  const search = Route.useSearch()
-  const navigate = useNavigate({ from: Route.fullPath })
-  const [q, setQ] = useState(search.q ?? '')
+  const navigate = useNavigate()
+  const { params, hasil, sibuk, muat } = useDaftar(
+    daftarBarang,
+    awal.hasil,
+    AWAL_BARANG,
+  )
   const admin = sesi.peran === 'admin'
+
+  const columns: ColumnDef<BarangRingkas, unknown>[] = [
+    {
+      id: 'nama',
+      accessorFn: (b) => b.nama,
+      header: 'Barang',
+      cell: ({ row }) => {
+        const b = row.original
+        return (
+          <>
+            <span className="font-semibold text-neutral-intense">{b.nama}</span>
+            {b.lokasi ? (
+              <span className="block text-xs font-medium text-text-soft">
+                {b.lokasi}
+              </span>
+            ) : null}
+          </>
+        )
+      },
+    },
+    {
+      id: 'kategori',
+      accessorFn: (b) => b.kategoriNama,
+      header: 'Kategori',
+      cell: ({ row }) => (
+        <span className="text-xs">{row.original.kategoriNama}</span>
+      ),
+    },
+    {
+      id: 'jumlah',
+      accessorFn: (b) => b.jumlah,
+      header: 'Jumlah',
+      cell: ({ row }) => (
+        <>
+          {row.original.jumlah}
+          <span className="block text-xs font-medium text-text-soft">
+            {row.original.tersedia} tersedia
+          </span>
+        </>
+      ),
+    },
+    {
+      id: 'kondisi',
+      accessorFn: (b) => b.kondisi,
+      header: 'Kondisi',
+      cell: ({ row }) => (
+        <span className="text-xs">
+          {row.original.kondisi.replace('_', ' ')}
+        </span>
+      ),
+    },
+    {
+      id: 'ketersediaan',
+      header: 'Ketersediaan',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <AvailabilityBadge status={row.original.statusKetersediaan} />
+      ),
+    },
+    {
+      id: 'aksi',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) =>
+        admin ? (
+          <TombolAksi
+            onClick={() =>
+              void navigate({
+                to: '/admin/barang/$id',
+                params: { id: row.original.id },
+              })
+            }
+          >
+            Ubah
+          </TombolAksi>
+        ) : (
+          <span className="text-xs text-text-disabled">—</span>
+        ),
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -66,90 +161,56 @@ function DaftarBarang() {
         }
       />
 
-      <Card className="flex flex-wrap gap-2">
-        <form
-          className="flex flex-1 flex-wrap gap-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void navigate({ search: (p) => ({ ...p, q }) })
-          }}
-        >
-          <input
-            className={`${inputCls} min-w-56 flex-1`}
-            placeholder="Cari nama atau lokasi barang…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <select
-            aria-label="Kategori"
-            className={inputCls}
-            value={search.kategori ?? ''}
-            onChange={(e) =>
-              void navigate({
-                search: (p) => ({ ...p, kategori: e.target.value }),
-              })
-            }
-          >
-            <option value="">Semua kategori</option>
-            {kategori.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.nama}
-              </option>
-            ))}
-          </select>
-          <TombolUtama type="submit">Cari</TombolUtama>
-        </form>
-      </Card>
-
-      {rows.length === 0 ? (
-        <EmptyState
-          title="Tidak ada barang"
-          body="Tidak ada barang yang cocok dengan filter ini."
-        />
-      ) : (
-        <DataTable
-          head={['Barang', 'Kategori', 'Jumlah', 'Kondisi', 'Ketersediaan', '']}
-        >
-          {rows.map((b) => (
-            <BarisTabel key={b.id}>
-              <Sel>
-                <span className="font-semibold text-neutral-intense">
-                  {b.nama}
-                </span>
-                {b.lokasi ? (
-                  <span className="block text-xs text-text-soft">
-                    {b.lokasi}
-                  </span>
-                ) : null}
-              </Sel>
-              <Sel className="text-xs">{b.kategoriNama}</Sel>
-              <Sel>
-                {b.jumlah}
-                <span className="block text-xs text-text-soft">
-                  {b.tersedia} tersedia
-                </span>
-              </Sel>
-              <Sel className="text-xs">{b.kondisi.replace('_', ' ')}</Sel>
-              <Sel>
-                <AvailabilityBadge status={b.statusKetersediaan} />
-              </Sel>
-              <Sel>
-                {admin ? (
-                  <Link
-                    to="/admin/barang/$id"
-                    params={{ id: b.id }}
-                    className="text-sm font-semibold text-accent no-underline hover:underline"
-                  >
-                    Ubah
-                  </Link>
-                ) : (
-                  <span className="text-xs text-text-disabled">—</span>
-                )}
-              </Sel>
-            </BarisTabel>
-          ))}
-        </DataTable>
-      )}
+      <TabelData
+        columns={columns}
+        data={hasil.rows}
+        total={hasil.total}
+        totalSemua={hasil.totalSemua}
+        perHalaman={hasil.perHalaman}
+        halaman={hasil.halaman}
+        sort={params.sort}
+        dir={params.dir}
+        sibuk={sibuk}
+        onSort={(sort, dir) =>
+          muat({ ...params, sort: sort ?? '', dir, halaman: 1 })
+        }
+        onHalaman={(h) => muat({ ...params, halaman: h })}
+        onPerHalaman={(n) => muat({ ...params, perHalaman: n, halaman: 1 })}
+        kosong={{
+          title: 'Tidak ada barang',
+          body: 'Tidak ada barang yang cocok dengan filter ini.',
+        }}
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2">
+            <KotakCari
+              nilai={params.q}
+              onCari={(q) => muat({ ...params, q, halaman: 1 })}
+              placeholder="Cari nama atau lokasi barang…"
+              className="min-w-56 flex-1"
+            />
+            <select
+              aria-label="Kategori"
+              className={inputCls}
+              value={params.kategoriId}
+              onChange={(e) =>
+                muat({ ...params, kategoriId: e.target.value, halaman: 1 })
+              }
+            >
+              <option value="">Semua kategori</option>
+              {awal.kategori.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.nama}
+                </option>
+              ))}
+            </select>
+            {params.q || params.kategoriId || params.sort ? (
+              <TombolSekunder onClick={() => muat(AWAL_BARANG)}>
+                Reset
+              </TombolSekunder>
+            ) : null}
+          </div>
+        }
+      />
     </div>
   )
 }

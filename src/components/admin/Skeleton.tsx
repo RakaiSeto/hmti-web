@@ -1,6 +1,6 @@
 import { useRouterState } from '@tanstack/react-router'
 
-import { Card } from '../ui'
+import { Card, BARIS_TABEL } from '../ui'
 
 /**
  * Loading skeletons for the admin pages (proposal: "Show a loading state while an admin
@@ -99,7 +99,7 @@ export function SkeletonTabel({ baris = 6 }: { baris?: number }) {
         {Array.from({ length: baris }, (_, i) => (
           <div
             key={i}
-            className="flex items-center gap-6 border-b border-neutral-soft/60 px-4 py-3 last:border-0"
+            className={`flex items-center gap-6 border-b border-neutral-soft/60 px-4 py-3 last:border-0 ${BARIS_TABEL}`}
           >
             <Bar className="h-4 w-24" />
             <Bar className="h-4 flex-1" />
