@@ -213,7 +213,13 @@ export const surat = sqliteTable('surat', {
   waktuVerifikasi: integer('waktu_verifikasi', { mode: 'timestamp' }),
 })
 
-/** Handover record (FR15). One per request. */
+/**
+ * Handover record (FR15). One per request.
+ *
+ * `file_path`/`nama_file` are the proof photo, the same shape as a return's (see
+ * `pengembalian`): nullable in the column, required by `catatSerahTerima`. Handovers
+ * recorded before the proof existed are real rows and must survive the migration.
+ */
 export const serahTerima = sqliteTable('serah_terima', {
   id: text('id').primaryKey(),
   pengajuanId: text('pengajuan_id')
@@ -222,6 +228,8 @@ export const serahTerima = sqliteTable('serah_terima', {
     .references(() => pengajuan.id, { onDelete: 'cascade' }),
   penerima: text('penerima').notNull(),
   catatan: text('catatan'),
+  filePath: text('file_path'),
+  namaFile: text('nama_file'),
   dicatatOleh: text('dicatat_oleh')
     .notNull()
     .references(() => user.id, { onDelete: 'restrict' }),

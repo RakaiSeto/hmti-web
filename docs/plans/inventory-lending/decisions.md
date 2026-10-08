@@ -445,40 +445,52 @@ Row height used to fall out of whatever the tallest cell in a table needed, so a
 single-line table came out visibly shorter than a name-over-subtitle one; the cells now
 refuse to wrap, which is what makes the fixed height hold.
 
-### D20. Proof photo required when recording a return — **settled: required**
+### D20. Proof photo required at handover and at return — **settled: required**
 
 The owner asked for it after the v2 PDF: *"when want to mengembalikan, make sure needed to
-upload picture as 'proof'"*. FR16 as written only asked for the condition and a note, so
-this is an addition to INV-20 rather than a reading of it.
+upload picture as 'proof'"*, then extended it to the handover: *"make when serah terima also
+needed foto bukti"*. FR16 as written only asked for the condition and a note, so this is an
+addition to INV-19/INV-20 rather than a reading of it.
 
-**Why it is a hard gate and not a warning.** The existing soft gates (FR14/BR04) are about
-things the operator can be trusted to judge, where a block would cost more than it saved.
-This is the opposite: a `rusak`/`hilang` line moves stock, and the photo is the only
-evidence a later reader has. A nudge would be ignored exactly when it matters.
+**Both steps, one rule.** The handover photo records what the borrower walked away with; the
+return photo records what came back. They are the same problem — a condition somebody wrote
+down and nobody can check — so they share the allowlist, the size cap, the `TIPE_BUKTI`
+constants in `server/siklus.ts` and one serving route.
 
-**Where it is enforced.** `catatPengembalian` takes FormData instead of a JSON object,
-because a `File` cannot cross a server-function boundary as JSON and base64 would inflate
-the upload by a third — the same reason `unggahSurat` is FormData. The `items` array rides
-along as a JSON string. The validator throws when no `file` part is present, so a direct
-call cannot record a return without one; the form's own guard exists only to put the
-message where the operator is looking.
+**Why a hard gate and not a warning.** The existing soft gates (FR14/BR04) are about things
+the operator can be trusted to judge, where a block would cost more than it saved. This is
+the opposite: a `rusak`/`hilang` line moves stock, and the photo is the only evidence a later
+reader has. A nudge would be ignored exactly when it matters.
+
+**Where it is enforced.** `catatSerahTerima` and `catatPengembalian` take FormData instead of
+a JSON object, because a `File` cannot cross a server-function boundary as JSON and base64
+would inflate the upload by a third — the same reason `unggahSurat` is FormData. The `items`
+array rides along as a JSON string. Each validator throws when no `file` part is present, so
+a direct call cannot record either step without one; the forms' own guards exist only to put
+the message where the operator is looking.
 
 **Sizing.** Images only (JPG/PNG/WebP), capped at 8 MB — the letter's cap, not the 2 MB
-item-photo cap. This is a phone photo taken at the counter, and refusing a real one would
-block the return it exists to record.
+item-photo cap. These are phone photos taken at the counter, and refusing a real one would
+block the step it exists to record.
 
-**Storage.** R2 under `returns/{kode}.{ext}`, the key built from the request code and never
-from user input (path traversal, collisions) — the third prefix alongside `letters/` and
-`photos/`. The MIME → extension mapping moved to `domain/unggahan.ts` so all three paths
-share one copy. Served staff-only from `/api/bukti/{kode}` with `private, no-store`: unlike
-an item photo this is internal evidence, not catalogue data.
+**Storage.** R2 under `handovers/{kode}.{ext}` and `returns/{kode}.{ext}`, keys built from
+the request code and never from user input (path traversal, collisions) — alongside the
+existing `letters/` and `photos/`. The MIME → extension mapping lives in
+`domain/unggahan.ts` so all four paths share one copy.
 
-**Columns are nullable.** `pengembalian.file_path` / `nama_file` are nullable even though
-the API requires them, because returns recorded before this change are real rows and a
-migration must not invalidate them. The request page simply shows no photo for those.
+Served staff-only from `/api/bukti/{jenis}/{kode}`, where `jenis` is `serah` or `kembali`,
+with `private, no-store`: unlike an item photo this is internal evidence, not catalogue data.
+One route rather than two because the kind only picks which table to read — the query comes
+from a closed map, never from the wire.
 
-**One log entry, not two.** The upload is not a separate act from recording the return, so
-it does not get its own `aksi`; `mencatat_pengembalian` covers both.
+**Columns are nullable.** `serah_terima.file_path` / `pengembalian.file_path` are nullable
+even though the API requires them, because records written before this change are real rows
+and a migration must not invalidate them. The request page simply shows no photo for those,
+and the seeded history is in exactly that state — the seed writes rows with `bun:sqlite` and
+cannot reach R2.
+
+**One log entry per step, not two.** The upload is not a separate act from recording the
+handover or the return, so it does not get its own `aksi`.
 
 **Open, deliberately not built:** the photo is not compressed client-side, so a phone photo
 over 8 MB is refused with a message rather than resized in the browser. If that turns out to
@@ -486,7 +498,8 @@ bite in practice, downscaling on the client is the fix, not a bigger cap.
 
 ### D21. One upload field for every upload — **settled**
 
-All three upload sites (an item photo, a request's letter, a return's proof photo) now render
+All four upload sites (an item photo, a request's letter, a handover's proof photo, a return's
+proof photo) now render
 `components/UnggahBerkas.tsx`: the design system's `.upload` block — a dashed drop zone you
 can click *or* drop a file onto, the glyph, "Tarik berkas ke sini / atau pilih dari
 perangkat", the accepted types and size, and a "Pilih berkas" affordance.

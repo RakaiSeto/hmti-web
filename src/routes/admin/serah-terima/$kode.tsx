@@ -6,6 +6,7 @@ import { formatTanggal } from '../../../lib/dates'
 import { detailPengajuan } from '../../../server/pengajuan'
 import { catatSerahTerima } from '../../../server/siklus'
 import { StatusBadge } from '../../../components/StatusBadge'
+import { UnggahBerkas } from '../../../components/UnggahBerkas'
 import {
   BarisTabel,
   Card,
@@ -41,6 +42,7 @@ function SerahTerima() {
   )
   const [pesan, setPesan] = useState<string | null>(null)
   const [sibuk, setSibuk] = useState(false)
+  const [bukti, setBukti] = useState<File | null>(null)
 
   if (!p) {
     return (
@@ -54,28 +56,45 @@ function SerahTerima() {
   const terverifikasi = p.surat?.status === 'terverifikasi'
 
   async function kirim() {
-    setSibuk(true)
-    setPesan(null)
-    const hasil = await catatSerahTerima({
-      data: {
-        kode: p!.kode,
-        penerima,
-        catatan,
-        items: p!.baris.map((b) => ({
-          barangId: b.barang_id,
-          kondisi: kondisi[b.barang_id] as (typeof KONDISI)[number],
-        })),
-      },
-    })
-    setSibuk(false)
-    if (!hasil.ok) {
-      setPesan(hasil.pesan)
+    if (!bukti) {
+      setPesan('Foto bukti serah terima wajib diunggah.')
       return
     }
-    await router.navigate({
-      to: '/admin/permintaan/$kode',
-      params: { kode: p!.kode },
-    })
+    setSibuk(true)
+    setPesan(null)
+    // FormData, not an object: the photo cannot cross the server-function boundary as
+    // JSON. `items` goes as a JSON string, which FormData cannot carry natively.
+    const data = new FormData()
+    data.set('kode', p!.kode)
+    data.set('penerima', penerima)
+    data.set('catatan', catatan)
+    data.set('file', bukti)
+    data.set(
+      'items',
+      JSON.stringify(
+        p!.baris.map((b) => ({
+          barangId: b.barang_id,
+          kondisi: kondisi[b.barang_id],
+        })),
+      ),
+    )
+    try {
+      const hasil = await catatSerahTerima({ data })
+      if (!hasil.ok) {
+        setPesan(hasil.pesan)
+        return
+      }
+      await router.navigate({
+        to: '/admin/permintaan/$kode',
+        params: { kode: p!.kode },
+      })
+    } catch {
+      // A rejected call reports nothing through `hasil`; without this the form would sit
+      // there looking busy for good.
+      setPesan('Serah terima gagal dicatat. Coba lagi.')
+    } finally {
+      setSibuk(false)
+    }
   }
 
   return (
@@ -111,8 +130,9 @@ function SerahTerima() {
           Data penerimaan
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Nama penerima">
+          <Field label="Nama penerima" wajib>
             <input
+              required
               className={inputCls}
               value={penerima}
               onChange={(e) => setPenerima(e.target.value)}
@@ -164,6 +184,25 @@ function SerahTerima() {
           ))}
         </DataTable>
       </div>
+
+      <Card className="flex flex-col gap-3">
+        <Field
+          label="Foto bukti serah terima"
+          wajib
+          hint="Wajib diunggah sebelum serah terima dicatat."
+        >
+          <UnggahBerkas
+            accept="image/jpeg,image/png,image/webp"
+            petunjuk="JPG, PNG, atau WebP, maksimal 8 MB."
+            file={bukti}
+            onPilih={(f) => {
+              setBukti(f)
+              setPesan(null)
+            }}
+            sibuk={sibuk}
+          />
+        </Field>
+      </Card>
 
       <div className="flex justify-end gap-2">
         <TombolSekunder

@@ -238,6 +238,7 @@ function Pengembalian() {
       <Card className="flex flex-col gap-3">
         <Field
           label="Foto bukti pengembalian"
+          wajib
           hint="Wajib diunggah sebelum pengembalian dicatat."
         >
           <UnggahBerkas

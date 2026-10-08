@@ -492,6 +492,9 @@ export const detailPengajuan = createServerFn({ method: 'GET' })
         ? {
             penerima: serahTerima.penerima as string,
             catatan: (serahTerima.catatan as string | null) ?? null,
+            namaFile: (serahTerima.nama_file as string | null) ?? null,
+            // False for a handover recorded before the proof photo was required.
+            adaBukti: Boolean(serahTerima.file_path),
             oleh: (serahTerima.oleh as string | null) ?? '—',
             waktu: new Date((serahTerima.waktu as number) * 1000),
           }

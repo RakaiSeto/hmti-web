@@ -13,9 +13,17 @@ Admin or PJ records serah terima: per-item condition, penerima name, timestamp,
 recorded-by. Status moves to `Dipinjam`. If the letter is not `terverifikasi`, the UI
 shows a warning but **allows** the handover (v2 PDF: FR14 and BR04 are soft gates
 now). Server permits; no hard block. Logged.
+
+**A proof photo is required** (owner, after v2 — decisions.md D20). The operator
+photographs what the borrower is walking away with, so a later disagreement about a
+condition has something behind it. Stored in R2 under `handovers/{kode}.{ext}`,
+referenced from `serah_terima.file_path`, served staff-only at `/api/bukti/serah/{kode}`,
+and shown on the request page next to the recorded handover.
+
 **Accepts:** a handover on an unverified letter succeeds with a visible warning; a
 valid handover moves status and is visible on both staff detail and borrower
-tracking.
+tracking; the proof photo opens from the request page. Submitting the form with no
+photo attached shows "Foto bukti serah terima wajib diunggah." and records nothing.
 
 ### INV-20 — Return record + damage/loss handling (FR16, BR05)
 Admin or PJ records pengembalian: per-item condition, catatan for rusak/hilang,
@@ -27,7 +35,7 @@ as the return record. Logged.
 uploads one image of the items as they come back; the form refuses to submit without it
 and so does the server, which is what makes it a requirement rather than a nudge. Stored
 in R2 under `returns/{kode}.{ext}`, referenced from `pengembalian.file_path`, and served
-staff-only at `/api/bukti/{kode}`. It is shown on the request page next to the recorded
+staff-only at `/api/bukti/kembali/{kode}`. It is shown on the request page next to the recorded
 return, because a `rusak`/`hilang` line is a claim and the photo is what settles it.
 
 **Accepts:** a return marking 1 of 3 units lost reduces the item's available stock and

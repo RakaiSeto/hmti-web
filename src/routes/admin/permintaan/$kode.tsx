@@ -425,6 +425,13 @@ function DetailPermintaan() {
                   {p.serahTerima.catatan}
                 </p>
               ) : null}
+              {p.serahTerima.adaBukti ? (
+                <BuktiFoto
+                  jenis="serah"
+                  kode={p.kode}
+                  label={`Bukti serah terima ${p.kode}`}
+                />
+              ) : null}
             </Card>
           ) : null}
 
@@ -448,21 +455,11 @@ function DetailPermintaan() {
                 {formatWaktu(p.pengembalian.waktu)}.
               </p>
               {p.pengembalian.adaBukti ? (
-                <a
-                  href={`/api/bukti/${p.kode}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex w-fit items-center gap-3 no-underline"
-                >
-                  <img
-                    src={`/api/bukti/${p.kode}`}
-                    alt={`Bukti pengembalian ${p.kode}`}
-                    className="h-32 w-32 rounded-md object-cover"
-                  />
-                  <span className="text-sm font-semibold text-accent">
-                    Buka foto bukti
-                  </span>
-                </a>
+                <BuktiFoto
+                  jenis="kembali"
+                  kode={p.kode}
+                  label={`Bukti pengembalian ${p.kode}`}
+                />
               ) : null}
             </Card>
           ) : null}
@@ -557,5 +554,36 @@ function Langkah({
         ) : null}
       </span>
     </li>
+  )
+}
+
+/**
+ * The proof photo behind a recorded handover or return: a thumbnail that opens the full
+ * image. Staff-only on the server side — the route re-checks the session.
+ */
+function BuktiFoto({
+  jenis,
+  kode,
+  label,
+}: {
+  jenis: 'serah' | 'kembali'
+  kode: string
+  label: string
+}) {
+  const url = `/api/bukti/${jenis}/${kode}`
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="flex w-fit items-center gap-3 no-underline"
+    >
+      <img
+        src={url}
+        alt={label}
+        className="h-32 w-32 rounded-md object-cover"
+      />
+      <span className="text-sm font-semibold text-accent">Buka foto bukti</span>
+    </a>
   )
 }

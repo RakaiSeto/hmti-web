@@ -147,6 +147,16 @@ export const ambilSurat = createServerFn({ method: 'GET' })
 
 /* --- handover (FR15, FR14, BR04) ------------------------------------------ */
 
+/**
+ * The proof photo, required by both the handover and the return.
+ *
+ * Images only, capped at 8 MB — the letter's cap rather than the 2 MB item-photo one.
+ * Both are phone photos taken at the counter, and refusing a real one would block the step
+ * it exists to record. Declared once because the two steps share the rule exactly.
+ */
+const TIPE_BUKTI = ['image/jpeg', 'image/png', 'image/webp']
+const MAKS_BUKTI = 8 * 1024 * 1024
+
 const MasukanSerahTerima = z.object({
   kode: z.string(),
   penerima: z.string().trim().min(2, 'Nama penerima wajib diisi').max(120),
@@ -168,11 +178,54 @@ const MasukanSerahTerima = z.object({
  * but the server allows the handover. There is deliberately no check here that blocks on
  * `surat.status_verifikasi` — adding one would silently reintroduce the hard gate the
  * requirements removed.
+ *
+ * The proof photo is a *hard* gate, like the return's. It records what the borrower
+ * actually walked away with, which is the only thing that can settle a later dispute about
+ * a condition nobody wrote down.
+ *
+ * FormData rather than a JSON object, for the same reason `unggahSurat` uses it: a `File`
+ * cannot cross the server-function boundary as JSON. `items` rides along as a JSON string,
+ * the one thing FormData cannot carry natively.
  */
 export const catatSerahTerima = createServerFn({ method: 'POST' })
-  .validator(MasukanSerahTerima)
+  .validator((data: unknown) => {
+    if (!(data instanceof FormData)) throw new Error('Diharapkan FormData')
+    const kode = String(data.get('kode') ?? '')
+    const file = data.get('file')
+    if (!kode) throw new Error('Kode pengajuan wajib diisi')
+    if (!(file instanceof File)) {
+      throw new Error('Foto bukti serah terima wajib diunggah')
+    }
+    let items: unknown
+    try {
+      items = JSON.parse(String(data.get('items') ?? ''))
+    } catch {
+      throw new Error('Daftar barang tidak dapat dibaca')
+    }
+    return {
+      kode,
+      file,
+      items: MasukanSerahTerima.shape.items.parse(items),
+      penerima: MasukanSerahTerima.shape.penerima.parse(
+        String(data.get('penerima') ?? ''),
+      ),
+      catatan: MasukanSerahTerima.shape.catatan.parse(
+        String(data.get('catatan') ?? ''),
+      ),
+    }
+  })
   .handler(async ({ data }) => {
     const sesi = await butuhPeran('admin', 'pj_inventaris')
+    if (!TIPE_BUKTI.includes(data.file.type)) {
+      return {
+        ok: false as const,
+        pesan: 'Foto bukti harus JPG, PNG, atau WebP.',
+      }
+    }
+    if (data.file.size > MAKS_BUKTI) {
+      return { ok: false as const, pesan: 'Ukuran foto bukti maksimal 8 MB.' }
+    }
+
     const db = env.DB
     const p = await db
       .prepare(`SELECT id, status FROM pengajuan WHERE kode = ?`)
@@ -183,15 +236,32 @@ export const catatSerahTerima = createServerFn({ method: 'POST' })
     const izin = bolehTransisi(p.status as never, 'Dipinjam', sesi.peran)
     if (!izin.ok) return { ok: false as const, pesan: izin.alasan! }
 
+    // Written only for a handover we are about to record: every check that can reject the
+    // submission has run. Code-based key, never user-supplied.
+    const key = `handovers/${data.kode}.${ekstensiBerkas(data.file.type)}`
+    await env.BUCKET.put(key, data.file.stream(), {
+      httpMetadata: { contentType: data.file.type },
+    })
+
     const now = Math.floor(Date.now() / 1000)
     const stId = newId()
     await db.batch([
       db
         .prepare(
-          `INSERT INTO serah_terima (id, pengajuan_id, penerima, catatan, dicatat_oleh, waktu)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO serah_terima (id, pengajuan_id, penerima, catatan, file_path,
+                                     nama_file, dicatat_oleh, waktu)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(stId, p.id, data.penerima, data.catatan || null, sesi.id, now),
+        .bind(
+          stId,
+          p.id,
+          data.penerima,
+          data.catatan || null,
+          key,
+          data.file.name,
+          sesi.id,
+          now,
+        ),
       ...data.items.map((it) =>
         db
           .prepare(
@@ -218,11 +288,6 @@ export const catatSerahTerima = createServerFn({ method: 'POST' })
   })
 
 /* --- return (FR16, BR05) -------------------------------------------------- */
-
-const TIPE_BUKTI = ['image/jpeg', 'image/png', 'image/webp']
-/** 8 MB, the letter's cap rather than the 2 MB item-photo one: this is a phone photo taken
- *  at the counter, and refusing a real one would block the return it is meant to record. */
-const MAKS_BUKTI = 8 * 1024 * 1024
 
 const MasukanPengembalian = z.object({
   kode: z.string(),
