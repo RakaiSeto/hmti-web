@@ -267,6 +267,12 @@ async function main() {
     alasan?: string
     /** Pin a tracking code instead of minting a random one — the /lacak demo code. */
     kode?: string
+    /**
+     * How many days ago it was submitted. Defaults to now, which is what most rows want;
+     * the dashboard's "Perlu tindakan" card only lists a request once it has waited more
+     * than two days, so at least one pending row has to be older than the seed run.
+     */
+    dibuat?: number
     lines: Array<[string, number]>
   }
 
@@ -286,6 +292,7 @@ async function main() {
       keperluan: 'Seminar nasional',
       status: 'Diajukan',
       kode: kodeDemo,
+      dibuat: 4,
       lines: [
         ['Proyektor Epson EB-X500', 2],
         ['Kamera Canon EOS M50', 1],
@@ -299,6 +306,7 @@ async function main() {
       to: 9,
       keperluan: 'Pelatihan mikrocontroller',
       status: 'Diajukan',
+      dibuat: 3,
       lines: [
         ['Proyektor Epson EB-W06', 1],
         ['Kabel XLR 5m', 4],
@@ -312,6 +320,7 @@ async function main() {
       to: 8,
       keperluan: 'Kegiatan Dies Natalis',
       status: 'Diajukan',
+      dibuat: 5,
       lines: [
         ['Speaker Aktif Yamaha DBR10', 2],
         ['Mic Wireless Shure BLX', 2],
@@ -434,7 +443,7 @@ async function main() {
       s.keperluan,
       s.status,
       s.alasan ?? null,
-      now,
+      now - (s.dibuat ?? 0) * 86_400,
       now,
     )
     for (const [nama, jumlah] of s.lines) {
@@ -469,7 +478,9 @@ async function main() {
     'surat-pramuka.pdf',
     'diterima',
     pjId,
-    now,
+    // Two days ago, so the dashboard's "Perlu tindakan" card has an unverified letter to
+    // show — its threshold is one day.
+    now - 2 * 86_400,
     null,
     null,
   )

@@ -249,41 +249,102 @@ export const daftarLog = createServerFn({ method: 'GET' })
 
 /* --- dashboard (FR17) ----------------------------------------------------- */
 
+/**
+ * One thing waiting on a person, as the dashboard's "Perlu tindakan" card shows it.
+ *
+ * `hari` is whole days, and what it counts depends on `jenis`: days past the due date, days
+ * since the request was made, or days since the letter was uploaded. The thresholds that
+ * decide whether a row appears at all live in the queries below.
+ */
+export interface Tindakan {
+  jenis: 'terlambat' | 'menunggu' | 'surat'
+  kode: string
+  organisasi: string
+  penanggungJawab: string | null
+  hari: number
+}
+
 export const ringkasanDasbor = createServerFn({ method: 'GET' }).handler(
   async () => {
     await butuhSesi()
     const db = env.DB
     const hariIni = todayWib()
+    const sekarang = Math.floor(Date.now() / 1000)
 
-    const [baru, aktif, terlambat, totalBarang, unitDipinjam, aktivitas] =
-      await Promise.all([
-        db
-          .prepare(`SELECT COUNT(*) c FROM pengajuan WHERE status = 'Diajukan'`)
-          .first<{ c: number }>(),
-        db
-          .prepare(`SELECT COUNT(*) c FROM pengajuan WHERE status = 'Dipinjam'`)
-          .first<{ c: number }>(),
-        db
-          .prepare(
-            `SELECT COUNT(*) c FROM pengajuan WHERE status = 'Dipinjam' AND tgl_kembali < ?`,
-          )
-          .bind(hariIni)
-          .first<{ c: number }>(),
-        db
-          .prepare(`SELECT COALESCE(SUM(jumlah), 0) c FROM barang`)
-          .first<{ c: number }>(),
-        db
-          .prepare(
-            `SELECT COALESCE(SUM(pb.jumlah), 0) c FROM pengajuan_barang pb
+    const [
+      baru,
+      aktif,
+      terlambat,
+      totalBarang,
+      unitDipinjam,
+      aktivitas,
+      telat,
+      menunggu,
+      surat,
+    ] = await Promise.all([
+      db
+        .prepare(`SELECT COUNT(*) c FROM pengajuan WHERE status = 'Diajukan'`)
+        .first<{ c: number }>(),
+      db
+        .prepare(`SELECT COUNT(*) c FROM pengajuan WHERE status = 'Dipinjam'`)
+        .first<{ c: number }>(),
+      db
+        .prepare(
+          `SELECT COUNT(*) c FROM pengajuan WHERE status = 'Dipinjam' AND tgl_kembali < ?`,
+        )
+        .bind(hariIni)
+        .first<{ c: number }>(),
+      db
+        .prepare(`SELECT COALESCE(SUM(jumlah), 0) c FROM barang`)
+        .first<{ c: number }>(),
+      db
+        .prepare(
+          `SELECT COALESCE(SUM(pb.jumlah), 0) c FROM pengajuan_barang pb
            JOIN pengajuan p ON p.id = pb.pengajuan_id WHERE p.status = 'Dipinjam'`,
-          )
-          .first<{ c: number }>(),
-        db
-          .prepare(
-            `SELECT aksi, pengguna_nama, waktu FROM log_aktivitas ORDER BY waktu DESC LIMIT 8`,
-          )
-          .all<{ aksi: string; pengguna_nama: string | null; waktu: number }>(),
-      ])
+        )
+        .first<{ c: number }>(),
+      db
+        .prepare(
+          `SELECT aksi, pengguna_nama, waktu FROM log_aktivitas ORDER BY waktu DESC LIMIT 5`,
+        )
+        .all<{ aksi: string; pengguna_nama: string | null; waktu: number }>(),
+      // The three kinds of thing that wait on a person. Thresholds per the proposal's Q2
+      // default: overdue from the first day, a request after two days, a letter after one
+      // (it is handed over in person, so a same-day upload is not yet "waiting").
+      db
+        .prepare(
+          `SELECT kode, organisasi, penanggung_jawab, tgl_kembali FROM pengajuan
+             WHERE status = 'Dipinjam' AND tgl_kembali < ? ORDER BY tgl_kembali ASC`,
+        )
+        .bind(hariIni)
+        .all<{
+          kode: string
+          organisasi: string
+          penanggung_jawab: string
+          tgl_kembali: string
+        }>(),
+      db
+        .prepare(
+          `SELECT kode, organisasi, penanggung_jawab, created_at FROM pengajuan
+             WHERE status = 'Diajukan' AND created_at < ? ORDER BY created_at ASC`,
+        )
+        .bind(sekarang - 2 * 24 * 60 * 60)
+        .all<{
+          kode: string
+          organisasi: string
+          penanggung_jawab: string
+          created_at: number
+        }>(),
+      db
+        .prepare(
+          `SELECT p.kode, p.organisasi, s.waktu FROM surat s
+             JOIN pengajuan p ON p.id = s.pengajuan_id
+             WHERE s.status_verifikasi = 'diterima' AND s.waktu < ?
+             ORDER BY s.waktu ASC`,
+        )
+        .bind(sekarang - 24 * 60 * 60)
+        .all<{ kode: string; organisasi: string; waktu: number }>(),
+    ])
 
     // Requests per month for the design's bar chart: a fixed six-month window ending with
     // the current WIB month, so the axis keeps its shape instead of collapsing to whichever
@@ -297,10 +358,59 @@ export const ringkasanDasbor = createServerFn({ method: 'GET' }).handler(
       )
       .bind(`${awalBulan}-01`)
       .all<{ bulan: string; c: number }>()
+    // Who the bars are made of. Same population and same month key as `hitungBulan`, so the
+    // names under a bar always add up to the number above it. Ordered by count so the
+    // busiest borrower is the one the tooltip shows first.
+    const { results: peminjamBulan } = await db
+      .prepare(
+        `SELECT substr(tgl_pinjam, 1, 7) AS bulan, organisasi, COUNT(*) AS c
+         FROM pengajuan WHERE tgl_pinjam >= ?
+         GROUP BY bulan, organisasi ORDER BY c DESC, organisasi ASC`,
+      )
+      .bind(`${awalBulan}-01`)
+      .all<{ bulan: string; organisasi: string; c: number }>()
     const perBulan = Array.from({ length: 6 }, (_, i) => {
       const bulan = geserBulan(awalBulan, i)
-      return { bulan, c: hitungBulan.find((h) => h.bulan === bulan)?.c ?? 0 }
+      return {
+        bulan,
+        c: hitungBulan.find((h) => h.bulan === bulan)?.c ?? 0,
+        peminjam: peminjamBulan
+          .filter((p) => p.bulan === bulan)
+          .map((p) => ({ organisasi: p.organisasi, c: p.c })),
+      }
     })
+
+    // One list, in the order it should be worked: overdue loans first, then the request that
+    // has waited longest, then the letters. The card caps how many it draws; the count it
+    // shows is the real backlog, not the capped length.
+    const bedaHari = (dari: string, sampai: string) =>
+      Math.round(
+        (Date.parse(`${sampai}T00:00:00Z`) - Date.parse(`${dari}T00:00:00Z`)) /
+          86_400_000,
+      )
+    const perluTindakan: Tindakan[] = [
+      ...telat.results.map((r) => ({
+        jenis: 'terlambat' as const,
+        kode: r.kode,
+        organisasi: r.organisasi,
+        penanggungJawab: r.penanggung_jawab,
+        hari: bedaHari(r.tgl_kembali, hariIni),
+      })),
+      ...menunggu.results.map((r) => ({
+        jenis: 'menunggu' as const,
+        kode: r.kode,
+        organisasi: r.organisasi,
+        penanggungJawab: r.penanggung_jawab,
+        hari: Math.floor((sekarang - r.created_at) / 86_400),
+      })),
+      ...surat.results.map((r) => ({
+        jenis: 'surat' as const,
+        kode: r.kode,
+        organisasi: r.organisasi,
+        penanggungJawab: null,
+        hari: Math.floor((sekarang - r.waktu) / 86_400),
+      })),
+    ]
 
     return {
       baru: baru?.c ?? 0,
@@ -314,6 +424,7 @@ export const ringkasanDasbor = createServerFn({ method: 'GET' }).handler(
         waktu: new Date(a.waktu * 1000),
       })),
       perBulan,
+      perluTindakan,
     }
   },
 )
