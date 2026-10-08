@@ -21,6 +21,7 @@
     "db:migrate:local": "wrangler d1 migrations apply hmti-inventaris --local",
     "db:migrate:remote": "wrangler d1 migrations apply hmti-inventaris --remote",
     "db:seed": "bun run --bun tools/seed.ts",
+    "db:seed:remote": "bun run --bun tools/seed-remote.ts",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {

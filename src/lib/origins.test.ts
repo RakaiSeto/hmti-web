@@ -26,14 +26,23 @@ describe('urlLokal', () => {
 })
 
 describe('hostDiizinkan', () => {
-  it('allows only the portal in dev, where the base URL is loopback', () => {
+  it('allows the configured origin and the portal in dev', () => {
     expect(hostDiizinkan('http://localhost:3000', undefined)).toEqual([
+      'localhost:3000',
       POLA_PORTAL_ORB,
     ])
   })
 
-  it('allows nothing extra on a real deployment', () => {
-    expect(hostDiizinkan('https://hmti.rakaiseto.com', undefined)).toEqual([])
+  it('names the deployment origin, so the allowlist is never empty', () => {
+    expect(hostDiizinkan('https://hmti.rakaiseto.com', undefined)).toEqual([
+      'hmti.rakaiseto.com',
+    ])
+  })
+
+  it('keeps the port, because that is what a Host header carries', () => {
+    expect(hostDiizinkan('https://hmti.rakaiseto.com:8443', undefined)).toEqual(
+      ['hmti.rakaiseto.com:8443'],
+    )
   })
 
   it('passes through the configured hosts, trimmed and without blanks', () => {
@@ -42,13 +51,22 @@ describe('hostDiizinkan', () => {
         'https://hmti.rakaiseto.com',
         ' staging.example.com , *.workers.dev ,',
       ),
-    ).toEqual(['staging.example.com', '*.workers.dev'])
+    ).toEqual(['staging.example.com', '*.workers.dev', 'hmti.rakaiseto.com'])
   })
 
   it('keeps the portal alongside the configured hosts in dev', () => {
     expect(hostDiizinkan('http://localhost:3000', '*.workers.dev')).toEqual([
       '*.workers.dev',
+      'localhost:3000',
       POLA_PORTAL_ORB,
     ])
+  })
+
+  it('falls back to the portal alone when the origin is unset', () => {
+    expect(hostDiizinkan(undefined, undefined)).toEqual([POLA_PORTAL_ORB])
+  })
+
+  it('trusts nothing when the origin is malformed', () => {
+    expect(hostDiizinkan('bukan url', undefined)).toEqual([])
   })
 })

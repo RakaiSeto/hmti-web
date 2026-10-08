@@ -39,8 +39,30 @@ build artefact. Production secrets are Worker secrets, set out of band:
 | `bun run typecheck` / `lint` / `test`  | what CI runs                                             |
 | `bun run db:generate`                  | new migration from `src/db/schema.ts`                    |
 | `bun run db:migrate:local` / `:remote` | apply migrations via wrangler                            |
+| `bun run db:seed` / `db:seed:remote`   | seed the local DB, then copy it into the remote one      |
 | `bun run deploy`                       | build + `wrangler deploy`                                |
 | `python3 tools/gen-tokens.py`          | regenerate `src/styles/tokens.css` from the design dumps |
+
+### Deploying
+
+The Worker, D1 database and R2 bucket are `hmti-inventaris` in the account
+`wrangler whoami` reports. `wrangler.jsonc` carries the real `database_id` and the deployed
+origin in `vars.BETTER_AUTH_URL` — that origin is the one host Better Auth trusts, so a move
+to a custom domain means changing it (see `src/lib/origins.ts`).
+
+Provisioning a fresh account, in order:
+
+```bash
+bunx wrangler d1 create hmti-inventaris           # put the printed id in wrangler.jsonc
+bunx wrangler r2 bucket create hmti-inventaris-files
+bun run db:migrate:remote
+openssl rand -base64 32 | bunx wrangler secret put BETTER_AUTH_SECRET
+bun run db:seed && bun run db:seed:remote          # first admin + demo data
+bun run deploy
+```
+
+Sign-up is disabled (FR08), so `db:seed:remote` is the only way an account reaches a
+deployment: it copies the seeded rows, password hashes included, out of the local database.
 
 **Routes** are all Indonesian (decisions.md D17): `/` · `/lacak` · `/masuk` ·
 `/katalog` · `/katalog/$id` · `/ajukan`, with staff pages under `/admin/*`.

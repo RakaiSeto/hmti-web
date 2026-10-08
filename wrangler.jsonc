@@ -3,6 +3,13 @@
   "name": "hmti-inventaris",
   "compatibility_date": "2026-10-07",
   "compatibility_flags": ["nodejs_compat"],
+  // The deployed origin, and the one host Better Auth trusts in production. Without it the
+  // allowlist is empty for a real domain (lib/origins.ts only adds the portal pattern when
+  // the configured origin is loopback or unset), so every sign-in on workers.dev fails with
+  // INVALID_ORIGIN. Change this if the Worker moves to a custom domain.
+  "vars": {
+    "BETTER_AUTH_URL": "https://hmti-inventaris.mamangrakai.workers.dev",
+  },
   // Custom entrypoint: the framework's default exports only `fetch`, and BR07's cron
   // trigger needs a `scheduled` export. See src/server.ts.
   "main": "src/server.ts",
@@ -14,13 +21,13 @@
   "triggers": {
     "crons": ["0 17 * * *"],
   },
-  // Local dev uses a simulated D1 in .wrangler/state — the id below is a placeholder
-  // until `wrangler d1 create hmti-inventaris` mints the real one (decisions.md D1).
+  // Local dev uses a simulated D1 in .wrangler/state; the id below is the real
+  // `hmti-inventaris` database, created with `wrangler d1 create` (decisions.md D1).
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "hmti-inventaris",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "7677a302-5ead-4836-a462-9fe719b42600",
       "migrations_dir": "drizzle",
     },
   ],

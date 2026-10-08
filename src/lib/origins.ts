@@ -1,8 +1,11 @@
 /**
  * Which hosts the auth API answers on.
  *
- * Production serves one origin, `BETTER_AUTH_URL`, and does not need to be listed here:
- * Better Auth falls back to that URL and trusts its origin. Local dev is not one origin.
+ * Production serves one origin, `BETTER_AUTH_URL`, and that host is listed here so the base
+ * URL resolves to the request host. It has to be listed: Better Auth rejects an empty
+ * `allowedHosts` outright, whether or not a `fallback` is set.
+ *
+ * Local dev is not one origin.
  * `bun run dev` is reached through the orb's portal proxy, which rewrites `Host` to the
  * portal hostname, so the browser sends `Origin: https://<orb>-p3000.onamp.dev`. A static
  * base URL rejects every sign-in from there with INVALID_ORIGIN, and the login form can
@@ -41,6 +44,22 @@ export function urlLokal(url: string | undefined): boolean {
 }
 
 /**
+ * The host of `url` — port included, because that is what a `Host` header carries — or `[]`
+ * when it is unset or unparseable.
+ *
+ * A malformed `BETTER_AUTH_URL` yields nothing on purpose: the deployment cannot be reached at
+ * a real domain, so there is no host to trust, and failing loudly beats trusting a wildcard.
+ */
+function hostDari(url: string | undefined): string[] {
+  if (!url) return []
+  try {
+    return [new URL(url).host]
+  } catch {
+    return []
+  }
+}
+
+/**
  * The `allowedHosts` list for Better Auth's dynamic base URL.
  *
  * `tambahan` is the raw `BETTER_AUTH_ALLOWED_HOSTS` value: comma-separated host patterns,
@@ -54,5 +73,9 @@ export function hostDiizinkan(
     .split(',')
     .map((h) => h.trim())
     .filter(Boolean)
-  return [...eksplisit, ...(urlLokal(url) ? [POLA_PORTAL_ORB] : [])]
+  return [
+    ...eksplisit,
+    ...hostDari(url),
+    ...(urlLokal(url) ? [POLA_PORTAL_ORB] : []),
+  ]
 }
