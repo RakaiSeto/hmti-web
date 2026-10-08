@@ -392,6 +392,59 @@ Phase 10  hardening + deploy
 Phase 6   Telegram — deferred
 ```
 
+### D19. List tables — one shared pagination/filter/search pattern — **settled**
+
+Every admin list table carries the same three controls: **search**, **filters**, and
+**server-side pagination** — **10 rows/page by default**, with a page-size picker
+(10 / 25 / 50 / 100). Column headers are **sortable**; the search box **debounces at
+300 ms**. The whole list is **one card**: the toolbar on top, the table in the middle, and
+the pager — a `Menampilkan x dari y data` count (x = rows matching the filters, y = all
+rows), the page-size picker, an editable page-number field and prev/next — as the card's
+footer. Each list function returns both counts, so the footer can say how far the filters
+narrowed the set.
+
+**State lives in the component, not the URL** (`lib/useDaftar.ts`). The route loader
+fetches the first page so the initial paint is server-rendered; after mount a filter, sort,
+page or page-size change calls the server function directly and swaps the table in place,
+leaving the URL bare. That is the DataTables-style trade the owner chose: no deep links and
+no back-button history for list state — a refresh starts over from the defaults.
+
+The list server function returns `{ rows, total, totalSemua, perHalaman, halaman }` and runs
+the `COUNT(*)` + `LIMIT`/`OFFSET` pair through `server/query.ts` (`susunWhere`,
+`ambilHalaman`, `pilihUrut`). Pagination maths and the page-size whitelist live in
+`lib/tabel.ts`.
+
+Rendering is **TanStack Table v8** (`@tanstack/react-table`), pinned to v8 rather than the
+newer v9 for the better-documented, more widely-known API (NFR07). It runs in **manual
+mode** — `manualPagination` + `manualSorting` + `rowCount` — so the library owns the column
+model, the sort toggle cycle and the page-index state, while SQL still does the paging and
+ordering. The shared wrapper is `components/TabelData.tsx`; a column's `id` is its server
+sort key, and display-only columns omit an accessor (TanStack's `getCanSort` needs an
+`accessorFn`). The debounced search input is `KotakCari` in `components/ui.tsx`.
+
+Rules that are load-bearing:
+
+- **Filter and search in SQL**, never on the page — paging would otherwise hide matches.
+- **Whitelist sort keys.** `pilihUrut` only accepts a known key → column expression; an
+  unknown sort falls back to the default order, so nothing hand-edited reaches SQL.
+- **Clamp the page.** `ambilHalaman` clamps to the real range, so an out-of-range page
+  lands on the last page instead of an empty table.
+- **Guard against races.** `useDaftar` tags each request with a counter, so a slow first
+  response cannot overwrite a faster second one.
+- **Unpaged selects stay unpaged.** A filter dropdown needs *every* row, so it gets its
+  own `*Ref` function (`daftarKategoriRef`, `daftarPenggunaRef`) rather than the paged one.
+- **Exports ignore the page.** The report CSV calls `eksporPeminjaman` / `eksporStok`,
+  which share the filter builder but drop `LIMIT`, so the file holds every filtered row.
+
+The public `/katalog` grid is deliberately **out of scope**: it keeps search only (no
+filter, no pagination), per the owner. Detail-page tables (a request's line items, the
+handover/return lines) are bounded by one record and stay on the plain `DataTable`.
+
+Both wrappers share one row height (`BARIS_TABEL` / `SEL_TABEL` in `components/ui.tsx`).
+Row height used to fall out of whatever the tallest cell in a table needed, so a
+single-line table came out visibly shorter than a name-over-subtitle one; the cells now
+refuse to wrap, which is what makes the fixed height hold.
+
 ---
 
 ## 6. Known design flaws — recorded, deferred
