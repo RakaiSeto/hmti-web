@@ -5,7 +5,7 @@ import type { Peran } from '#/db/schema'
 import { authClient } from '#/lib/auth-client'
 
 import { BrandLockup } from '../BrandLockup'
-import { IconBell, IconChevronDown, IconLogout, IconProfil } from '../Icons'
+import { IconChevronDown, IconLogout, IconProfil } from '../Icons'
 import { LABEL_PERAN, navUntuk } from './nav'
 
 /**
@@ -130,25 +130,9 @@ export function AdminShell({
       {/* --- main ---------------------------------------------------------- */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex h-15.5 shrink-0 items-center justify-end gap-2 border-b border-neutral-soft bg-surface px-8">
-          {/* The design's topbar notification affordance. The only thing here that
-              warrants attention is a new request, so it links to the queue and counts it. */}
-          <Link
-            to="/admin/permintaan"
-            aria-label={
-              jumlahPermintaanBaru > 0
-                ? `Notifikasi: ${jumlahPermintaanBaru} permintaan baru`
-                : 'Notifikasi'
-            }
-            className="relative flex size-9 items-center justify-center rounded-full border border-neutral-soft bg-surface text-text-soft no-underline transition-colors hover:bg-neutral-subtle hover:text-neutral-intense"
-          >
-            <IconBell size={18} />
-            {jumlahPermintaanBaru > 0 ? (
-              <span className="absolute -top-1 -right-1 flex min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] leading-4 font-bold text-ink">
-                {jumlahPermintaanBaru}
-              </span>
-            ) : null}
-          </Link>
-
+          {/* No notification affordance here: the dashboard's "Perlu tindakan" card is the
+              one place that lists what needs attention, and the sidebar already counts new
+              requests on the Permintaan row. */}
           <div className="relative" ref={menuRef}>
             <button
               type="button"

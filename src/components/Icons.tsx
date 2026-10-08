@@ -419,25 +419,6 @@ export function IconLog({ size = 16, className }: IconProps) {
   )
 }
 
-/** The topbar's notification affordance. */
-export function IconBell({ size = 16, className }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      width={size}
-      height={size}
-      aria-hidden="true"
-      className={className}
-    >
-      <path
-        d="M8 1.6 C5.7 1.6 3.9 3.4 3.9 5.7 V9.1 L2.6 11.7 H13.4 L12.1 9.1 V5.7 C12.1 3.4 10.3 1.6 8 1.6 Z"
-        {...outline}
-      />
-      <path d="M6.3 13.6 A1.8 1.8 0 0 0 9.7 13.6" {...outline} />
-    </svg>
-  )
-}
-
 /** The account menu's disclosure caret. */
 export function IconChevronDown({ size = 16, className }: IconProps) {
   return (

@@ -182,8 +182,9 @@ function Dasbor() {
                         {rincian(t)}
                       </span>
                     </span>
+                    {/* The row navigates, it does not act: the verb lives on the page it opens. */}
                     <span className="shrink-0 text-xs font-semibold text-text-soft">
-                      {AKSI_TINDAKAN[t.jenis]} →
+                      Lihat Detail →
                     </span>
                   </Link>
                 </li>
@@ -218,12 +219,6 @@ const GAYA_TINDAKAN: Record<Tindakan['jenis'], string> = {
   terlambat: 'bg-error-container text-error',
   menunggu: 'bg-warning-container text-warning',
   surat: 'bg-accent-container text-accent',
-}
-
-const AKSI_TINDAKAN: Record<Tindakan['jenis'], string> = {
-  terlambat: 'Kembalikan',
-  menunggu: 'Tinjau',
-  surat: 'Verifikasi',
 }
 
 /** Why the row is here, and for how long. `hari` is never 0 — the query sets the floor. */
