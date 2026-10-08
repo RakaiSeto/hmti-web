@@ -70,7 +70,7 @@ function DaftarBarang() {
           <>
             <span className="font-semibold text-neutral-intense">{b.nama}</span>
             {b.lokasi ? (
-              <span className="block text-xs font-medium text-text-soft">
+              <span className="block text-sm font-medium text-text-soft">
                 {b.lokasi}
               </span>
             ) : null}
@@ -83,7 +83,7 @@ function DaftarBarang() {
       accessorFn: (b) => b.kategoriNama,
       header: 'Kategori',
       cell: ({ row }) => (
-        <span className="text-xs">{row.original.kategoriNama}</span>
+        <span className="text-sm">{row.original.kategoriNama}</span>
       ),
     },
     {
@@ -93,7 +93,7 @@ function DaftarBarang() {
       cell: ({ row }) => (
         <>
           {row.original.jumlah}
-          <span className="block text-xs font-medium text-text-soft">
+          <span className="block text-sm font-medium text-text-soft">
             {row.original.tersedia} tersedia
           </span>
         </>
@@ -104,7 +104,7 @@ function DaftarBarang() {
       accessorFn: (b) => b.kondisi,
       header: 'Kondisi',
       cell: ({ row }) => (
-        <span className="text-xs">
+        <span className="text-sm">
           {row.original.kondisi.replace('_', ' ')}
         </span>
       ),
@@ -134,7 +134,7 @@ function DaftarBarang() {
             Ubah
           </TombolAksi>
         ) : (
-          <span className="text-xs text-text-disabled">—</span>
+          <span className="text-sm text-text-disabled">—</span>
         ),
     },
   ]

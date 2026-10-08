@@ -13,6 +13,11 @@ import { LABEL_STATUS } from '#/domain/status'
  * on a card, which is already `surface`, and those two fills are one value apart (#F0F0F0
  * on #EFF0F2) — the badge came out as bare text. `text-text-disabled` was likewise 1.5:1
  * on it, so both closed states use `text-text-soft`.
+ *
+ * A badge is `text-sm`, the same size as the row it sits in. The design sets `.st` two
+ * pixels under its table body (11.5 on 13.5), which would put us at `text-xs` — but the
+ * owner asked for one size per row, so the hierarchy here is carried by weight and colour
+ * alone, not size. The chip still reads as a chip because of its fill and radius.
  */
 type Status = StatusPengajuan | 'Terlambat'
 
@@ -29,7 +34,7 @@ const GAYA: Record<Status, string> = {
 export function StatusBadge({ status }: { status: Status }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-md px-2 py-1 text-xs font-semibold ${GAYA[status]}`}
+      className={`inline-flex shrink-0 items-center rounded-md px-2 py-1 text-sm font-semibold ${GAYA[status]}`}
     >
       {LABEL_STATUS[status]}
     </span>
@@ -49,7 +54,7 @@ export function AvailabilityBadge({
   }[status]
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-md px-2 py-1 text-xs font-semibold ${gaya}`}
+      className={`inline-flex shrink-0 items-center rounded-md px-2 py-1 text-sm font-semibold ${gaya}`}
     >
       {status}
     </span>

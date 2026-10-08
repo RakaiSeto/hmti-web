@@ -211,11 +211,12 @@ export function DataTable({
  *
  * It is fixed rather than content-driven: without it a table's rhythm changes with what
  * happens to be in the columns (a one-line row here, a name-over-subtitle row there), and
- * single-line tables come out visibly shorter than the rest. 4rem fits our tallest cell —
- * a primary line over a muted second line — with room to spare, and the cells refuse to
- * wrap, so a long value can never stretch one row past its neighbours.
+ * single-line tables come out visibly shorter than the rest. Every cell in a row is
+ * `text-sm` (14px/20px), so the tallest cell is a primary line over a secondary one — 40px
+ * — and `h-17` leaves 4px of slack around it. The cells refuse to wrap, so a long value
+ * can never stretch one row past its neighbours.
  */
-export const BARIS_TABEL = 'h-16'
+export const BARIS_TABEL = 'h-17'
 
 /** A body cell: the row height, no wrapping, and the shared padding. */
 export const SEL_TABEL = `px-4 py-3 align-middle text-text whitespace-nowrap ${BARIS_TABEL}`

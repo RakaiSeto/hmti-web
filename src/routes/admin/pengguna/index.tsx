@@ -125,14 +125,14 @@ function Pengguna() {
       id: 'email',
       accessorFn: (u) => u.email,
       header: 'Email',
-      cell: ({ row }) => <span className="text-xs">{row.original.email}</span>,
+      cell: ({ row }) => <span className="text-sm">{row.original.email}</span>,
     },
     {
       id: 'peran',
       accessorFn: (u) => u.peran,
       header: 'Peran',
       cell: ({ row }) => (
-        <span className="rounded-full bg-surface-container px-2.5 py-1 text-xs font-semibold text-text-soft">
+        <span className="rounded-full bg-surface-container px-2.5 py-1 text-sm font-semibold text-text-soft">
           {labelPeran(row.original.peran)}
         </span>
       ),
@@ -142,7 +142,7 @@ function Pengguna() {
       accessorFn: (u) => u.createdAt.getTime(),
       header: 'Dibuat',
       cell: ({ row }) => (
-        <span className="text-xs font-medium text-text-soft">
+        <span className="text-sm font-medium text-text-soft">
           {formatWaktu(row.original.createdAt)}
         </span>
       ),

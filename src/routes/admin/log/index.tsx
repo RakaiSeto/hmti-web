@@ -68,7 +68,7 @@ function LogAktivitas() {
       accessorFn: (r) => r.waktu.getTime(),
       header: 'Waktu',
       cell: ({ row }) => (
-        <span className="whitespace-nowrap text-xs font-medium text-text-soft">
+        <span className="whitespace-nowrap text-sm font-medium text-text-soft">
           {formatWaktu(row.original.waktu)}
         </span>
       ),
@@ -88,7 +88,7 @@ function LogAktivitas() {
       accessorFn: (r) => r.aksi,
       header: 'Aksi',
       cell: ({ row }) => (
-        <span className="text-xs">{labelAksi(row.original.aksi)}</span>
+        <span className="text-sm">{labelAksi(row.original.aksi)}</span>
       ),
     },
     {
@@ -96,7 +96,7 @@ function LogAktivitas() {
       accessorFn: (r) => r.entitas,
       header: 'Entitas',
       cell: ({ row }) => (
-        <span className="text-xs">
+        <span className="text-sm">
           {labelEntitas(row.original.entitas)}
           {row.original.entitasId ? (
             <span className="ml-2 font-mono text-text-disabled">

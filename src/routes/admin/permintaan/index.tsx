@@ -69,7 +69,7 @@ function Permintaan() {
       accessorFn: (r) => r.kode,
       header: 'Kode',
       cell: ({ row }) => (
-        <span className="font-mono text-xs font-semibold whitespace-nowrap">
+        <span className="font-mono text-sm font-semibold whitespace-nowrap">
           {row.original.kode}
         </span>
       ),
@@ -83,7 +83,7 @@ function Permintaan() {
           <span className="font-semibold text-neutral-intense">
             {row.original.organisasi}
           </span>
-          <span className="block text-xs font-medium text-text-soft">
+          <span className="block text-sm font-medium text-text-soft">
             {row.original.penanggungJawab}
           </span>
         </>
@@ -94,7 +94,7 @@ function Permintaan() {
       accessorFn: (r) => r.tglPinjam,
       header: 'Tanggal',
       cell: ({ row }) => (
-        <span className="whitespace-nowrap text-xs">
+        <span className="whitespace-nowrap text-sm">
           {formatTanggal(row.original.tglPinjam)} →{' '}
           {formatTanggal(row.original.tglKembali)}
         </span>
@@ -105,7 +105,7 @@ function Permintaan() {
       header: 'Barang',
       enableSorting: false,
       cell: ({ row }) => (
-        <span className="text-xs whitespace-nowrap">
+        <span className="text-sm whitespace-nowrap">
           {row.original.jumlahBaris} jenis · {row.original.totalUnit} unit
         </span>
       ),

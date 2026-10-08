@@ -62,7 +62,7 @@ function RiwayatPengembalian() {
       accessorFn: (r) => r.kode,
       header: 'Kode',
       cell: ({ row }) => (
-        <span className="font-mono text-xs font-semibold whitespace-nowrap">
+        <span className="font-mono text-sm font-semibold whitespace-nowrap">
           {row.original.kode}
         </span>
       ),
@@ -76,7 +76,7 @@ function RiwayatPengembalian() {
           <span className="font-semibold text-neutral-intense">
             {row.original.organisasi}
           </span>
-          <span className="block text-xs font-medium text-text-soft">
+          <span className="block text-sm font-medium text-text-soft">
             {row.original.penanggungJawab}
           </span>
         </>
@@ -88,10 +88,10 @@ function RiwayatPengembalian() {
       header: 'Dikembalikan',
       cell: ({ row }) => (
         <>
-          <span className="whitespace-nowrap text-xs">
+          <span className="whitespace-nowrap text-sm">
             {formatWaktu(row.original.waktu)}
           </span>
-          <span className="block text-xs font-medium text-text-soft">
+          <span className="block text-sm font-medium text-text-soft">
             oleh {row.original.oleh}
           </span>
         </>
@@ -102,7 +102,7 @@ function RiwayatPengembalian() {
       header: 'Barang',
       enableSorting: false,
       cell: ({ row }) => (
-        <span className="text-xs whitespace-nowrap">
+        <span className="text-sm whitespace-nowrap">
           {row.original.jumlahBaris} jenis · {row.original.totalUnit} unit
         </span>
       ),
@@ -116,7 +116,7 @@ function RiwayatPengembalian() {
           className={
             row.original.rusakHilang > 0
               ? 'font-semibold text-error'
-              : 'text-xs'
+              : 'text-sm'
           }
         >
           {row.original.rusakHilang}

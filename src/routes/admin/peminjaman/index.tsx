@@ -60,7 +60,7 @@ function PeminjamanAktif() {
       accessorFn: (r) => r.kode,
       header: 'Kode',
       cell: ({ row }) => (
-        <span className="font-mono text-xs font-semibold whitespace-nowrap">
+        <span className="font-mono text-sm font-semibold whitespace-nowrap">
           {row.original.kode}
         </span>
       ),
@@ -74,7 +74,7 @@ function PeminjamanAktif() {
           <span className="font-semibold text-neutral-intense">
             {row.original.organisasi}
           </span>
-          <span className="block text-xs font-medium text-text-soft">
+          <span className="block text-sm font-medium text-text-soft">
             {row.original.penanggungJawab} · {row.original.kontak}
           </span>
         </>
@@ -86,7 +86,7 @@ function PeminjamanAktif() {
       header: 'Jatuh tempo',
       cell: ({ row }) => (
         <span
-          className={`whitespace-nowrap text-xs ${row.original.terlambat ? 'font-semibold text-error' : ''}`}
+          className={`whitespace-nowrap text-sm ${row.original.terlambat ? 'font-semibold text-error' : ''}`}
         >
           {formatTanggal(row.original.tglKembali)}
         </span>
@@ -97,7 +97,7 @@ function PeminjamanAktif() {
       header: 'Barang',
       enableSorting: false,
       cell: ({ row }) => (
-        <span className="text-xs whitespace-nowrap">
+        <span className="text-sm whitespace-nowrap">
           {row.original.jumlahBaris} jenis · {row.original.totalUnit} unit
         </span>
       ),

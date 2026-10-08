@@ -154,7 +154,7 @@ function Laporan() {
       accessorFn: (r) => r.kode,
       header: 'Kode',
       cell: ({ row }) => (
-        <span className="font-mono text-xs font-semibold whitespace-nowrap">
+        <span className="font-mono text-sm font-semibold whitespace-nowrap">
           {row.original.kode}
         </span>
       ),
@@ -168,7 +168,7 @@ function Laporan() {
           <span className="font-semibold text-neutral-intense">
             {row.original.organisasi}
           </span>
-          <span className="block text-xs font-medium text-text-soft">
+          <span className="block text-sm font-medium text-text-soft">
             {row.original.penanggungJawab}
           </span>
         </>
@@ -179,7 +179,7 @@ function Laporan() {
       accessorFn: (r) => r.tglPinjam,
       header: 'Periode',
       cell: ({ row }) => (
-        <span className="whitespace-nowrap text-xs">
+        <span className="whitespace-nowrap text-sm">
           {formatTanggal(row.original.tglPinjam)} →{' '}
           {formatTanggal(row.original.tglKembali)}
         </span>
@@ -189,7 +189,7 @@ function Laporan() {
       id: 'barang',
       header: 'Barang',
       enableSorting: false,
-      cell: ({ row }) => <span className="text-xs">{row.original.barang}</span>,
+      cell: ({ row }) => <span className="text-sm">{row.original.barang}</span>,
     },
     {
       id: 'status',
@@ -215,7 +215,7 @@ function Laporan() {
       accessorFn: (s) => s.kategori,
       header: 'Kategori',
       cell: ({ row }) => (
-        <span className="text-xs">{row.original.kategori}</span>
+        <span className="text-sm">{row.original.kategori}</span>
       ),
     },
     {
@@ -229,7 +229,7 @@ function Laporan() {
       accessorFn: (s) => s.kondisi,
       header: 'Kondisi',
       cell: ({ row }) => (
-        <span className="text-xs">
+        <span className="text-sm">
           {row.original.kondisi.replace('_', ' ')}
         </span>
       ),
