@@ -353,6 +353,12 @@ it is and flaws are revisited after the app ships.
 Kategori) · Peminjaman(Aktif, Pengembalian) · Permintaan · Laporan · Sistem(Pengguna,
 Log Aktivitas, Profil Saya). Drop Pengaturan; its settings are server config anyway.
 
+**Amended once the shell was built**: the sidebar's `Sistem` group is Pengguna · Log
+Aktivitas. `Profil Saya` and `Keluar` moved out of the sidebar into the topbar's account
+menu, because they are account actions rather than destinations and the sidebar is on
+screen the whole time. A PJ gets `Keluar` only — `navPj` still carries no `Profil Saya`,
+since an admin resets their password (FR08).
+
 ### D17. Route naming
 
 **Recommend all-Indonesian paths**, admin under a prefix:
