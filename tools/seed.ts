@@ -128,7 +128,7 @@ async function main() {
   const insKat = db.prepare(
     `INSERT INTO kategori (id, nama, created_at) VALUES (?, ?, ?)`,
   )
-  for (const nama of ['Audio', 'Visual', 'Komputer', 'Perkakas']) {
+  for (const nama of ['Audio', 'Visual', 'Komputer', 'Jaringan', 'Perkakas']) {
     const id = newId()
     kategoriIds.set(nama, id)
     insKat.run(id, nama, now)
@@ -205,12 +205,12 @@ async function main() {
       'Core i5, 8GB RAM.',
     ],
     [
-      'Proyektor Screen 70"',
+      'Layar Proyektor Tripod 70"',
       'Visual',
       2,
       'baik',
       'Gudang TU-2',
-      'Layar tripod.',
+      'Layar tripod, untuk ruang kelas.',
     ],
     [
       'Tenda Pleton 4x4',
@@ -227,6 +227,294 @@ async function main() {
       'rusak_berat',
       'Gudang TU-2',
       'Menunggu perbaikan.',
+    ],
+    [
+      'Proyektor Epson EB-E01',
+      'Visual',
+      3,
+      'baik',
+      'Gudang TU-2',
+      'Proyektor 3300 lumens, HDMI.',
+    ],
+    [
+      'Proyektor BenQ MX560',
+      'Visual',
+      2,
+      'baik',
+      'Gudang TU-2',
+      'Proyektor 4000 lumens, XGA.',
+    ],
+    [
+      'Layar Proyektor Tripod 100"',
+      'Visual',
+      1,
+      'baik',
+      'Gudang TU-2',
+      'Layar tripod ukuran besar, untuk aula.',
+    ],
+    [
+      'Kamera Canon EOS 700D',
+      'Visual',
+      1,
+      'baik',
+      'Lemari Kominfo',
+      'DSLR + lensa kit 18-55mm.',
+    ],
+    [
+      'Lensa Canon EF 50mm f/1.8',
+      'Visual',
+      2,
+      'baik',
+      'Lemari Kominfo',
+      'Lensa fixed untuk foto kegiatan indoor.',
+    ],
+    [
+      'Gimbal Zhiyun Smooth 4',
+      'Visual',
+      2,
+      'baik',
+      'Lemari Kominfo',
+      'Stabilizer untuk perekaman video ponsel.',
+    ],
+    [
+      'Lampu LED Video Godox SL60',
+      'Visual',
+      2,
+      'baik',
+      'Lemari Kominfo',
+      'Lampu studio 60W + softbox.',
+    ],
+    [
+      'Green Screen 2x3m',
+      'Visual',
+      1,
+      'baik',
+      'Gudang Bawah',
+      'Kain hijau untuk produksi video.',
+    ],
+    [
+      'Webcam Logitech C920',
+      'Visual',
+      3,
+      'baik',
+      'Sekretariat',
+      'Webcam 1080p untuk rapat daring.',
+    ],
+    [
+      'Mic Shure SM58',
+      'Audio',
+      4,
+      'baik',
+      'Lemari Audio',
+      'Mic vokal kabel, konektor XLR.',
+    ],
+    [
+      'Speaker Pasif Yamaha A12',
+      'Audio',
+      2,
+      'baik',
+      'Gudang TU-2',
+      'Speaker pasif 12 inci, butuh amplifier.',
+    ],
+    [
+      'Mixer Yamaha MG10XU',
+      'Audio',
+      1,
+      'baik',
+      'Lemari Audio',
+      'Mixer 10 channel dengan efek.',
+    ],
+    [
+      'Amplifier Yamaha PX3',
+      'Audio',
+      1,
+      'baik',
+      'Gudang TU-2',
+      'Power amplifier 2x300W.',
+    ],
+    [
+      'Kabel Jack 6.3mm 10m',
+      'Audio',
+      8,
+      'baik',
+      'Lemari Audio',
+      'Kabel instrument, mono.',
+    ],
+    [
+      'Stand Mic Tripod',
+      'Audio',
+      6,
+      'baik',
+      'Lemari Audio',
+      'Stand mic lipat dengan boom pendek.',
+    ],
+    [
+      'Mic Clip On Wireless',
+      'Audio',
+      2,
+      'baik',
+      'Lemari Audio',
+      'Mic kerah untuk narasumber.',
+    ],
+    [
+      'DI Box Behringer DI20',
+      'Audio',
+      2,
+      'baik',
+      'Lemari Audio',
+      'Active DI box, dua channel.',
+    ],
+    [
+      'Laptop Lenovo IdeaPad Slim 3',
+      'Komputer',
+      2,
+      'baik',
+      'Sekretariat',
+      'Ryzen 5, 16GB RAM, untuk kegiatan lomba.',
+    ],
+    [
+      'Printer Epson L3210',
+      'Komputer',
+      2,
+      'baik',
+      'Sekretariat',
+      'Printer inkjet all-in-one.',
+    ],
+    [
+      'Monitor LG 24 inci',
+      'Komputer',
+      2,
+      'baik',
+      'Sekretariat',
+      'Monitor IPS 24 inci, HDMI.',
+    ],
+    [
+      'Keyboard dan Mouse Wireless Logitech',
+      'Komputer',
+      4,
+      'baik',
+      'Sekretariat',
+      'Set MK235, satu receiver.',
+    ],
+    [
+      'Hard Disk Eksternal 2TB',
+      'Komputer',
+      2,
+      'baik',
+      'Sekretariat',
+      'Penyimpanan dokumentasi kegiatan.',
+    ],
+    [
+      'SSD Eksternal Samsung T7 1TB',
+      'Komputer',
+      1,
+      'baik',
+      'Sekretariat',
+      'SSD USB-C untuk transfer berkas besar.',
+    ],
+    [
+      'Router TP-Link Archer C6',
+      'Jaringan',
+      3,
+      'baik',
+      'Lemari Jaringan',
+      'Router dual band untuk kegiatan lapangan.',
+    ],
+    [
+      'Switch TP-Link 8 Port',
+      'Jaringan',
+      4,
+      'baik',
+      'Lemari Jaringan',
+      'Switch gigabit unmanaged.',
+    ],
+    [
+      'Access Point Ubiquiti UniFi AC Lite',
+      'Jaringan',
+      2,
+      'baik',
+      'Lemari Jaringan',
+      'Access point indoor, PoE.',
+    ],
+    [
+      'Kabel UTP Cat6 305m',
+      'Jaringan',
+      1,
+      'baik',
+      'Lemari Jaringan',
+      'Satu roll, belum dipotong.',
+    ],
+    [
+      'Tang Crimping RJ45',
+      'Jaringan',
+      3,
+      'baik',
+      'Lemari Jaringan',
+      'Termasuk konektor RJ45 satu pack.',
+    ],
+    [
+      'Tenda Rooftop 3x3',
+      'Perkakas',
+      2,
+      'baik',
+      'Gudang Bawah',
+      'Tenda kanopi untuk kegiatan luar.',
+    ],
+    [
+      'Kursi Lipat',
+      'Perkakas',
+      40,
+      'baik',
+      'Gudang Bawah',
+      'Kursi lipat besi, untuk rapat besar.',
+    ],
+    [
+      'Meja Lipat',
+      'Perkakas',
+      12,
+      'baik',
+      'Gudang Bawah',
+      'Meja lipat 120x60cm.',
+    ],
+    [
+      'Genset 1000W',
+      'Perkakas',
+      1,
+      'baik',
+      'Gudang Bawah',
+      'Genset bensin, cadangan daya lapangan.',
+    ],
+    [
+      'Kabel Roll 25m',
+      'Perkakas',
+      4,
+      'baik',
+      'Gudang Bawah',
+      'Kabel roll 4 lubang.',
+    ],
+    [
+      'Tool Kit Lengkap',
+      'Perkakas',
+      2,
+      'baik',
+      'Gudang Bawah',
+      'Obeng, kunci pas, tang, dan testpen.',
+    ],
+    [
+      'Troli Barang',
+      'Perkakas',
+      2,
+      'baik',
+      'Gudang Bawah',
+      'Troli lipat untuk angkut peralatan.',
+    ],
+    [
+      'Tangga Aluminium 2m',
+      'Perkakas',
+      1,
+      'baik',
+      'Gudang Bawah',
+      'Tangga lipat dua sisi.',
     ],
   ]
   const barangIds = new Map<string, string>()
@@ -268,9 +556,11 @@ async function main() {
     /** Pin a tracking code instead of minting a random one — the /lacak demo code. */
     kode?: string
     /**
-     * How many days ago it was submitted. Defaults to now, which is what most rows want;
-     * the dashboard's "Perlu tindakan" card only lists a request once it has waited more
-     * than two days, so at least one pending row has to be older than the seed run.
+     * How many days ago it was submitted. Defaults to a week before `from`, which is the
+     * relationship the explicit values here follow — a request created after the period it
+     * asks for is the one thing that makes a seeded history read as fake. The dashboard's
+     * "Perlu tindakan" card only lists a request once it has waited more than two days, so
+     * the pending rows state their own age rather than deriving it.
      */
     dibuat?: number
     lines: Array<[string, number]>
@@ -423,15 +713,221 @@ async function main() {
       status: 'Disetujui',
       lines: [['Proyektor Epson EB-X500', 1]],
     },
+    {
+      organisasi: 'HMJ Teknik Sipil',
+      pj: 'Yusuf Maulana',
+      kontak: '0812-1515-2626',
+      from: 8,
+      to: 11,
+      keperluan: 'Kunjungan industri',
+      status: 'Diajukan',
+      dibuat: 1,
+      lines: [
+        ['Proyektor Epson EB-E01', 1],
+        ['Kabel Roll 25m', 2],
+      ],
+    },
+    {
+      organisasi: 'UKM Musik',
+      pj: 'Salsabila Rahma',
+      kontak: '0857-7171-8282',
+      from: 10,
+      to: 13,
+      keperluan: 'Latihan rutin dan pentas',
+      status: 'Diajukan',
+      dibuat: 2,
+      lines: [
+        ['Mixer Yamaha MG10XU', 1],
+        ['Mic Shure SM58', 2],
+        ['Stand Mic Tripod', 2],
+      ],
+    },
+    {
+      organisasi: 'Kelompok Studi Linux',
+      pj: 'Rizky Ananda',
+      kontak: '0813-9191-0202',
+      from: 5,
+      to: 7,
+      keperluan: 'Pelatihan server',
+      status: 'Diajukan',
+      dibuat: 3,
+      lines: [
+        ['Switch TP-Link 8 Port', 2],
+        ['Router TP-Link Archer C6', 1],
+        ['Kabel UTP Cat6 305m', 1],
+      ],
+    },
+    {
+      organisasi: 'Komunitas E-Sport',
+      pj: 'Dwi Handoko',
+      kontak: '0899-1313-2424',
+      from: 25,
+      to: 27,
+      keperluan: 'Turnamen internal',
+      status: 'Diajukan',
+      dibuat: 6,
+      lines: [
+        ['Router TP-Link Archer C6', 1],
+        ['Kabel Roll 25m', 2],
+      ],
+    },
+    {
+      organisasi: 'LPM Gagasan',
+      pj: 'Yoga Pratama',
+      kontak: '0812-3535-4646',
+      from: 14,
+      to: 16,
+      keperluan: 'Peliputan kegiatan',
+      status: 'Disetujui',
+      lines: [
+        ['Kamera Canon EOS 700D', 1],
+        ['Mic Clip On Wireless', 1],
+      ],
+    },
+    {
+      organisasi: 'HMJ Kimia',
+      pj: 'Intan Permatasari',
+      kontak: '0856-5555-6666',
+      from: 7,
+      to: 9,
+      keperluan: 'Sosialisasi laboratorium',
+      status: 'Disetujui',
+      lines: [
+        ['Proyektor Epson EB-W06', 1],
+        ['Layar Proyektor Tripod 70"', 1],
+      ],
+    },
+    {
+      organisasi: 'UKM Paduan Suara',
+      pj: 'Arif Setiawan',
+      kontak: '0821-7777-8888',
+      from: 20,
+      to: 22,
+      keperluan: 'Lomba paduan suara',
+      status: 'Disetujui',
+      lines: [
+        ['Speaker Pasif Yamaha A12', 2],
+        ['Amplifier Yamaha PX3', 1],
+      ],
+    },
+    {
+      organisasi: 'UKM Voli',
+      pj: 'Bayu Nugroho',
+      kontak: '0819-9999-0000',
+      from: -5,
+      to: -1,
+      keperluan: 'Turnamen antarkelas',
+      status: 'Dipinjam',
+      lines: [
+        ['Speaker Aktif Yamaha DBR10', 2],
+        ['Mic Wireless Shure BLX', 2],
+      ],
+    },
+    {
+      organisasi: 'UKM Bela Diri',
+      pj: 'Rina Marlina',
+      kontak: '0878-1212-3535',
+      from: -3,
+      to: 2,
+      keperluan: 'Latihan bersama',
+      status: 'Dipinjam',
+      lines: [
+        ['Speaker Aktif Yamaha DBR10', 1],
+        ['Kabel Jack 6.3mm 10m', 2],
+      ],
+    },
+    {
+      organisasi: 'Komunitas Sinematografi',
+      pj: 'Citra Ayu',
+      kontak: '0813-4646-5757',
+      from: -18,
+      to: -15,
+      keperluan: 'Produksi film pendek',
+      status: 'Selesai',
+      lines: [
+        ['Kamera Canon EOS M50', 2],
+        ['Lensa Canon EF 50mm f/1.8', 1],
+        ['Tripod Takara 228', 2],
+      ],
+    },
+    {
+      organisasi: 'UKM Tari',
+      pj: 'Eko Prasetyo',
+      kontak: '0857-6868-7979',
+      from: -25,
+      to: -22,
+      keperluan: 'Pentas seni akhir tahun',
+      status: 'Selesai',
+      lines: [
+        ['Speaker Aktif Yamaha DBR10', 2],
+        ['Mixer Behringer Xenyx 802', 1],
+      ],
+    },
+    {
+      organisasi: 'UKM Catur',
+      pj: 'Fitri Wulandari',
+      kontak: '0811-9090-1111',
+      from: -14,
+      to: -11,
+      keperluan: 'Turnamen catur antarjurusan',
+      status: 'Selesai',
+      lines: [
+        ['Meja Lipat', 6],
+        ['Kursi Lipat', 24],
+      ],
+    },
+    {
+      organisasi: 'UKM Pecinta Alam',
+      pj: 'Galih Ramadhan',
+      kontak: '0821-2222-3333',
+      from: -30,
+      to: -27,
+      keperluan: 'Perkemahan penerimaan anggota',
+      status: 'Selesai',
+      lines: [
+        ['Tenda Pleton 4x4', 3],
+        ['Genset 1000W', 1],
+      ],
+    },
+    {
+      organisasi: 'UKM Otomotif',
+      pj: 'Hana Safitri',
+      kontak: '0899-4444-5555',
+      from: -9,
+      to: -6,
+      keperluan: 'Pelatihan perawatan mesin',
+      status: 'Ditolak',
+      alasan:
+        'Genset sedang dijadwalkan perawatan rutin pada tanggal tersebut.',
+      lines: [['Genset 1000W', 1]],
+    },
+    {
+      organisasi: 'UKM Kewirausahaan',
+      pj: 'Irfan Maulana',
+      kontak: '0817-6666-7777',
+      from: 30,
+      to: 32,
+      keperluan: 'Seminar kewirausahaan',
+      status: 'Dibatalkan',
+      lines: [
+        ['Proyektor Epson EB-X500', 1],
+        ['Mic Wireless Shure BLX', 2],
+      ],
+    },
   ]
 
   const kodeById = new Map<string, string>()
   const idByOrg = new Map<string, string>()
+  /** Days ago each request was submitted, resolved once so the log can reuse it. */
+  const dibuatHari = new Map<string, number>()
   for (const s of specs) {
     const id = newId()
     const kode = s.kode ?? newKode()
     kodeById.set(kode, id)
     idByOrg.set(s.organisasi, id)
+    // A week before the period it asks for, never in the future.
+    const hariLalu = s.dibuat ?? Math.max(0, 7 - s.from)
+    dibuatHari.set(s.organisasi, hariLalu)
     insPengajuan.run(
       id,
       kode,
@@ -443,7 +939,7 @@ async function main() {
       s.keperluan,
       s.status,
       s.alasan ?? null,
-      now - (s.dibuat ?? 0) * 86_400,
+      now - hariLalu * 86_400,
       now,
     )
     for (const [nama, jumlah] of s.lines) {
@@ -542,43 +1038,96 @@ async function main() {
     'Unit tidak menyala, dikirim untuk perbaikan.',
   )
 
+  /* --- the ordinary handovers and returns --------------------------------- */
+  // Every `Dipinjam` request has a handover and every `Selesai` one a return: the status
+  // says so, and a request page showing `Dipinjam` with no handover behind it reads as a
+  // bug. The two cases above carry the interesting detail — a verified letter, a damage
+  // note — and these are the rest, skipped where a case already wrote one.
+  //
+  // Neither carries a proof photo. The seed writes rows with bun:sqlite and cannot reach
+  // R2, so seeded records have `file_path` NULL — the same shape as anything recorded
+  // before the proof was required, which the pages already handle.
+  const sudahSerahTerima = new Set([aktif])
+  const sudahKembali = new Set([selesai])
+  for (const s of specs) {
+    const pid = idByOrg.get(s.organisasi)!
+    if (s.status === 'Dipinjam' && !sudahSerahTerima.has(pid)) {
+      const id = newId()
+      insST.run(id, pid, s.pj, null, pjId, now)
+      for (const [nama] of s.lines) {
+        insSTI.run(newId(), id, barangIds.get(nama)!, 'baik')
+      }
+    }
+    if (s.status === 'Selesai' && !sudahKembali.has(pid)) {
+      const id = newId()
+      insKembali.run(id, pid, 'Semua unit kembali lengkap.', pjId, now)
+      for (const [nama, jumlah] of s.lines) {
+        insKembaliItem.run(
+          newId(),
+          id,
+          barangIds.get(nama)!,
+          'baik',
+          jumlah,
+          null,
+        )
+      }
+    }
+  }
+
   /* --- activity log (FR21) ----------------------------------------------- */
   const insLog = db.prepare(
     `INSERT INTO log_aktivitas (id, pengguna_id, pengguna_nama, aksi, entitas, entitas_id, waktu)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
   )
-  const logRows: Array<[string, string, string, string, string | null]> = [
-    [
-      adminId,
-      'Rakai Admin',
-      'menyetujui',
-      'pengajuan',
-      idByOrg.get('UKM Pramuka')!,
-    ],
-    [
-      adminId,
-      'Rakai Admin',
-      'menolak',
-      'pengajuan',
-      idByOrg.get('HMJ Administrasi Niaga')!,
-    ],
-    [pjId, 'Sinta PJ', 'mencatat_serah_terima', 'pengajuan', aktif],
-    [pjId, 'Sinta PJ', 'mencatat_pengembalian', 'pengajuan', selesai],
-    [pjId, 'Sinta PJ', 'mengunggah_surat', 'pengajuan', disetujui],
-    [adminId, 'Rakai Admin', 'memverifikasi_surat', 'pengajuan', aktif],
-  ]
-  for (const [uid, nama, aksi, entitas, eid] of logRows) {
-    insLog.run(newId(), uid, nama, aksi, entitas, eid, now)
+  // Derived from the requests rather than hand-listed, so the log agrees with the data
+  // above: every decision, handover and return has its entry, and the timestamps run in
+  // the order the actions actually happened. Public submissions are not here — they have
+  // no account to attribute them to.
+  const catatLog = (
+    uid: string,
+    nama: string,
+    aksi: string,
+    eid: string,
+    waktu: number,
+  ) => insLog.run(newId(), uid, nama, aksi, 'pengajuan', eid, waktu)
+
+  // Oldest first, so the log reads in the order the actions happened.
+  const urutWaktu = [...specs].sort(
+    (a, b) =>
+      (dibuatHari.get(b.organisasi) ?? 0) - (dibuatHari.get(a.organisasi) ?? 0),
+  )
+  for (const s of urutWaktu) {
+    const pid = idByOrg.get(s.organisasi)!
+    const dibuat = now - (dibuatHari.get(s.organisasi) ?? 0) * 86_400
+    if (s.status === 'Ditolak') {
+      catatLog(adminId, 'Rakai Admin', 'menolak', pid, dibuat + 3600)
+    } else if (s.status === 'Dibatalkan') {
+      catatLog(adminId, 'Rakai Admin', 'membatalkan', pid, dibuat + 3600)
+    } else if (s.status !== 'Diajukan') {
+      catatLog(adminId, 'Rakai Admin', 'menyetujui', pid, dibuat + 3600)
+    }
+    if (s.status === 'Dipinjam' || s.status === 'Selesai') {
+      catatLog(pjId, 'Sinta PJ', 'mencatat_serah_terima', pid, dibuat + 7200)
+    }
+    if (s.status === 'Selesai') {
+      catatLog(pjId, 'Sinta PJ', 'mencatat_pengembalian', pid, dibuat + 86_400)
+    }
+  }
+  catatLog(pjId, 'Sinta PJ', 'mengunggah_surat', disetujui, now - 2 * 86_400)
+  catatLog(adminId, 'Rakai Admin', 'memverifikasi_surat', aktif, now - 86_400)
+
+  const counts = {
+    kategori: 5,
+    barang: items.length,
+    pengajuan: specs.length,
+    surat: 2,
+    serahTerima: db.query('SELECT COUNT(*) AS n FROM serah_terima').get(),
+    pengembalian: db.query('SELECT COUNT(*) AS n FROM pengembalian').get(),
+    log: db.query('SELECT COUNT(*) AS n FROM log_aktivitas').get(),
   }
 
   db.close()
 
-  const counts = {
-    kategori: items.length && 4,
-    barang: items.length,
-    pengajuan: specs.length,
-    surat: 2,
-  }
   console.log('Seeded:', counts)
   console.log('  admin@hmti.polinema.ac.id / admin123      (admin)')
   console.log('  pj@hmti.polinema.ac.id    / pj123456      (pj_inventaris)')
