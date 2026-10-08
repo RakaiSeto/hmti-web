@@ -20,6 +20,12 @@ COLOR_MAP = {
     "primary.firm": "brand-firm",
     "primary.soft": "brand-soft",
     "primary.hint": "brand-hint",
+    # The text colour for a brand-yellow FILL. The design system defines it as a role
+    # (`--brand-ink: var(--neutral-950)`), not as a canvas token, so it is introduced by
+    # LIGHT_OVERRIDE below. Without it `text-brand-ink` is a dead class and every yellow
+    # button in the app falls back to `--color-text` (#454545, 5.85:1 on the fill) instead
+    # of #0A0A0A (12.06:1).
+    "brand.ink": "brand-ink",
     # brand blue (design: secondary.*)
     "secondary.mid": "accent",
     "secondary.firm": "accent-firm",
@@ -89,6 +95,7 @@ LIGHT_OVERRIDE = {
     "color.error.container": "#fee2e2",
     "color.info.container": "#dbeafe",
     "secondary.container": "#dbeafe",
+    "brand.ink": "#0a0a0a",
     "color.warning": "#92400e",
     "color.error": "#be123c",
 }
@@ -169,8 +176,9 @@ def main():
     out.append("   desaturated to near-grey and read as uncoloured in an alert.")
     out.append("   `color.warning` and `color.error` are pinned with them (#92400e /")
     out.append("   #be123c) so the -100 fill does not cost the text its AA contrast.")
-    out.append("   `secondary.container` is introduced the same way: the canvas never")
-    out.append("   carries it, so `bg-accent-container` had no fill. See LIGHT_OVERRIDE in")
+    out.append("   `secondary.container` and `brand.ink` are introduced the same way: the")
+    out.append("   canvas never carries them, so `bg-accent-container` had no fill and")
+    out.append("   `text-brand-ink` was a dead class. See LIGHT_OVERRIDE in")
     out.append("   tools/gen-tokens.py.")
     out.append("   ========================================================================== */")
     out.append("")

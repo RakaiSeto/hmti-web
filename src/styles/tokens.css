@@ -25,8 +25,9 @@
    desaturated to near-grey and read as uncoloured in an alert.
    `color.warning` and `color.error` are pinned with them (#92400e /
    #be123c) so the -100 fill does not cost the text its AA contrast.
-   `secondary.container` is introduced the same way: the canvas never
-   carries it, so `bg-accent-container` had no fill. See LIGHT_OVERRIDE in
+   `secondary.container` and `brand.ink` are introduced the same way: the
+   canvas never carries them, so `bg-accent-container` had no fill and
+   `text-brand-ink` was a dead class. See LIGHT_OVERRIDE in
    tools/gen-tokens.py.
    ========================================================================== */
 
@@ -91,6 +92,7 @@
   --color-brand-firm: #ae8c00; /* primary.firm */
   --color-brand-soft: #eee0b6; /* primary.soft */
   --color-brand-hint: #f7f5ee; /* primary.hint */
+  --color-brand-ink: #0a0a0a; /* brand.ink */
   --color-accent: #0d21a1; /* secondary.mid */
   --color-accent-firm: #0b1f84; /* secondary.firm */
   --color-accent-soft: #7393de; /* secondary.soft */
