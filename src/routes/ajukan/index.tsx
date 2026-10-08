@@ -14,6 +14,7 @@ import {
   Card,
   Field,
   PageHeader,
+  TombolAksi,
   TombolSekunder,
   TombolUtama,
   inputCls,
@@ -208,39 +209,44 @@ function FormPeminjaman() {
                 Data Organisasi
               </h2>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Nama organisasi">
+                <Field label="Nama organisasi" wajib>
                   <input
+                    required
                     className={inputCls}
                     placeholder="mis. Workshop Robotika"
                     value={organisasi}
                     onChange={(e) => setOrganisasi(e.target.value)}
                   />
                 </Field>
-                <Field label="Nama penanggung jawab">
+                <Field label="Nama penanggung jawab" wajib>
                   <input
+                    required
                     className={inputCls}
                     value={penanggungJawab}
                     onChange={(e) => setPenanggungJawab(e.target.value)}
                   />
                 </Field>
-                <Field label="No. WhatsApp">
+                <Field label="No. WhatsApp" wajib>
                   <input
+                    required
                     className={inputCls}
                     placeholder="0812-3456-7890"
                     value={kontak}
                     onChange={(e) => setKontak(e.target.value)}
                   />
                 </Field>
-                <Field label="Keperluan">
+                <Field label="Keperluan" wajib>
                   <input
+                    required
                     className={inputCls}
                     placeholder="mis. Seminar nasional"
                     value={keperluan}
                     onChange={(e) => setKeperluan(e.target.value)}
                   />
                 </Field>
-                <Field label="Tanggal pinjam">
+                <Field label="Tanggal pinjam" wajib>
                   <input
+                    required
                     type="date"
                     min={todayWib()}
                     className={inputCls}
@@ -250,9 +256,11 @@ function FormPeminjaman() {
                 </Field>
                 <Field
                   label="Tanggal kembali"
+                  wajib
                   hint="Barang dapat dipinjam kembali oleh organisasi lain pada tanggal ini."
                 >
                   <input
+                    required
                     type="date"
                     min={tglPinjam}
                     className={inputCls}
@@ -301,24 +309,28 @@ function FormPeminjaman() {
                 ))}
               </div>
 
-              <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+              {/* The scroll box is sized to whole rows. A card is 152px — the name and the
+                  meta line each reserve two lines, so nothing about their length changes
+                  the height — and `max-h-120` is 480px, which is exactly three of them plus
+                  their 12px gaps. The last thing in view is never half a card. */}
+              <div className="grid max-h-120 grid-cols-1 gap-3 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
                 {terlihat.map((b) => {
                   const bebas = tersediaMap[b.id] ?? b.jumlah
                   const sudah = baris.some((x) => x.barangId === b.id)
                   return (
                     <div
                       key={b.id}
-                      className="flex items-center justify-between gap-3 rounded-md border border-neutral-soft px-3 py-2"
+                      className="flex flex-col gap-2 rounded-lg border border-neutral-soft p-3"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-neutral-intense">
-                          {b.nama}
-                        </p>
-                        <p className="text-xs text-text-soft">
-                          {b.kategoriNama} · {bebas} dari {b.jumlah} unit bebas
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
+                      <p className="line-clamp-2 min-h-10 text-sm font-semibold text-neutral-intense">
+                        {b.nama}
+                      </p>
+                      <p className="line-clamp-2 min-h-10 text-xs text-text-soft">
+                        {b.kategoriNama} · {bebas} dari {b.jumlah} unit bebas
+                      </p>
+                      {/* `mt-auto` with the grid's default stretch: the badge and button
+                          sit on the card's floor even when a name takes two lines. */}
+                      <div className="mt-auto flex items-center justify-between gap-2">
                         <AvailabilityBadge
                           status={statusDari(bebas, b.jumlah)}
                         />
@@ -326,7 +338,7 @@ function FormPeminjaman() {
                           type="button"
                           disabled={sudah || bebas <= 0}
                           onClick={() => tambah(b.id)}
-                          className="rounded-md border border-neutral-soft px-3 py-1 text-xs font-semibold disabled:opacity-40"
+                          className="rounded-md border border-neutral-soft px-3 py-1 text-sm font-semibold disabled:opacity-40"
                         >
                           {sudah ? 'Ditambah' : 'Tambah'}
                         </button>
@@ -335,7 +347,7 @@ function FormPeminjaman() {
                   )
                 })}
                 {terlihat.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-text-soft">
+                  <p className="col-span-full py-6 text-center text-sm text-text-soft">
                     Tidak ada barang yang cocok.
                   </p>
                 ) : null}
@@ -363,9 +375,8 @@ function FormPeminjaman() {
                           <span className="text-sm font-semibold text-neutral-intense">
                             {b.nama}
                           </span>
-                          <button
-                            type="button"
-                            className="text-xs font-semibold text-error"
+                          <TombolAksi
+                            bahaya
                             onClick={() =>
                               setBaris((s) =>
                                 s.filter((y) => y.barangId !== x.barangId),
@@ -373,7 +384,7 @@ function FormPeminjaman() {
                             }
                           >
                             Hapus
-                          </button>
+                          </TombolAksi>
                         </div>
                         <div className="flex items-center gap-2">
                           <button

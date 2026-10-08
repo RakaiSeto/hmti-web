@@ -109,16 +109,26 @@ export function Field({
   label,
   hint,
   error,
+  wajib = false,
   children,
 }: {
   label: string
   hint?: string
   error?: string
+  /** Marks the field as mandatory. The input still needs `required` for assistive tech. */
+  wajib?: boolean
   children: React.ReactNode
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-xs font-semibold text-neutral-bold">
-      {label}
+      <span>
+        {label}
+        {wajib ? (
+          <span aria-hidden="true" className="text-error">
+            {' *'}
+          </span>
+        ) : null}
+      </span>
       {children}
       {hint && !error ? (
         <span className="text-xs font-normal text-text-soft">{hint}</span>
@@ -134,8 +144,8 @@ export const inputCls =
   'rounded-md border border-neutral-soft bg-surface-container px-3 py-2 text-sm font-normal text-text outline-none focus:border-accent disabled:opacity-60'
 
 /**
- * A table row action: a small filled chip, sized like the design's `btn-sm`. `bahaya`
- * swaps to the destructive colour.
+ * A small filled action chip, sized like the design's `btn-sm` — a table row's action, or
+ * a line's remove button. `bahaya` swaps to the destructive colour.
  */
 const AKSI =
   'inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-1.5 text-sm font-semibold no-underline transition-colors hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60'
