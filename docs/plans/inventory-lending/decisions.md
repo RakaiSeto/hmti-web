@@ -445,6 +445,83 @@ Row height used to fall out of whatever the tallest cell in a table needed, so a
 single-line table came out visibly shorter than a name-over-subtitle one; the cells now
 refuse to wrap, which is what makes the fixed height hold.
 
+### D20. Proof photo required when recording a return — **settled: required**
+
+The owner asked for it after the v2 PDF: *"when want to mengembalikan, make sure needed to
+upload picture as 'proof'"*. FR16 as written only asked for the condition and a note, so
+this is an addition to INV-20 rather than a reading of it.
+
+**Why it is a hard gate and not a warning.** The existing soft gates (FR14/BR04) are about
+things the operator can be trusted to judge, where a block would cost more than it saved.
+This is the opposite: a `rusak`/`hilang` line moves stock, and the photo is the only
+evidence a later reader has. A nudge would be ignored exactly when it matters.
+
+**Where it is enforced.** `catatPengembalian` takes FormData instead of a JSON object,
+because a `File` cannot cross a server-function boundary as JSON and base64 would inflate
+the upload by a third — the same reason `unggahSurat` is FormData. The `items` array rides
+along as a JSON string. The validator throws when no `file` part is present, so a direct
+call cannot record a return without one; the form's own guard exists only to put the
+message where the operator is looking.
+
+**Sizing.** Images only (JPG/PNG/WebP), capped at 8 MB — the letter's cap, not the 2 MB
+item-photo cap. This is a phone photo taken at the counter, and refusing a real one would
+block the return it exists to record.
+
+**Storage.** R2 under `returns/{kode}.{ext}`, the key built from the request code and never
+from user input (path traversal, collisions) — the third prefix alongside `letters/` and
+`photos/`. The MIME → extension mapping moved to `domain/unggahan.ts` so all three paths
+share one copy. Served staff-only from `/api/bukti/{kode}` with `private, no-store`: unlike
+an item photo this is internal evidence, not catalogue data.
+
+**Columns are nullable.** `pengembalian.file_path` / `nama_file` are nullable even though
+the API requires them, because returns recorded before this change are real rows and a
+migration must not invalidate them. The request page simply shows no photo for those.
+
+**One log entry, not two.** The upload is not a separate act from recording the return, so
+it does not get its own `aksi`; `mencatat_pengembalian` covers both.
+
+**Open, deliberately not built:** the photo is not compressed client-side, so a phone photo
+over 8 MB is refused with a message rather than resized in the browser. If that turns out to
+bite in practice, downscaling on the client is the fix, not a bigger cap.
+
+### D21. One upload field for every upload — **settled**
+
+All three upload sites (an item photo, a request's letter, a return's proof photo) now render
+`components/UnggahBerkas.tsx`: the design system's `.upload` block — a dashed drop zone you
+can click *or* drop a file onto, the glyph, "Tarik berkas ke sini / atau pilih dari
+perangkat", the accepted types and size, and a "Pilih berkas" affordance.
+
+**It is a picker, not an uploader.** The caller owns the picked `File` and decides what
+happens next, because the sites genuinely differ: a photo and a letter upload the moment one
+is picked, while a proof photo is held until the whole return form is submitted. A component
+that uploaded would have to model both, and the deferred case would need an escape hatch.
+
+**The zone is not a `<label>` or a `<button>`.** It is rendered inside `Field`, which is
+already a `<label>`, so the zone is a plain `<div>` with the file input inside it. A click
+anywhere in the zone opens the file manager through the label's own activation behaviour —
+no second click handler, no nested `<label>`, and no `<button>` competing with the label's
+labelled control. The input is `sr-only` but focusable, and the zone draws the focus ring
+with `focus-within`. The "Pilih berkas" pill is `aria-hidden` decoration for that reason: the
+zone is the control.
+
+**A dropped file is checked against `accept` before it is used.** The attribute only filters
+what the file manager offers, so a drag can deliver anything; `cocokTerima` in
+`domain/unggahan.ts` rejects a mismatched drop inline instead of letting it fail a round trip
+on the server. A file with no MIME type (some platforms hand one over empty on drag) falls
+back to its extension.
+
+**A rejected call must not leave the field stuck.** Picking a file sets the busy state and
+clears it in a `finally`; a rejection that reported nothing through `{ ok: false }` — a
+validator throw, a dropped connection — would otherwise leave the zone reading
+"Mengunggah…" with `pointer-events: none` for good. This is not hypothetical: it is exactly
+what hid the `unggahFoto` bug below.
+
+**Bug this work surfaced.** `unggahFoto` took `{ barangId, file }` as a plain object, and a
+`File` cannot cross the server-function boundary as JSON — the same constraint that makes
+`unggahSurat` use FormData. The call rejected on the client every time, so **the item-photo
+upload had never worked**; with no busy UI, nothing said so. It takes FormData now, and the
+photo is written.
+
 ---
 
 ## 6. Known design flaws — recorded, deferred

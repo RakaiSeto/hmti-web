@@ -172,6 +172,32 @@ const outline = {
   strokeLinejoin: 'round',
 } as const
 
+/**
+ * The upload field's glyph: an arrow rising out of a tray.
+ *
+ * Drawn rather than lifted: the design ships this one as the text character `⬆` in its
+ * `.upload` block (`design-system/index.html`), which has no path to copy, so it is drawn
+ * in the same 1.2px outline language as the rest of this section.
+ */
+export function IconUnggah({ size = 24, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={px(size, 16, 16)}
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M2 10.6 V12.4 A1.6 1.6 0 0 0 3.6 14 H12.4 A1.6 1.6 0 0 0 14 12.4 V10.6"
+        {...outline}
+      />
+      <path d="M8 11.2 V2.4" {...outline} />
+      <path d="M4.5 5.9 L8 2.4 L11.5 5.9" {...outline} />
+    </svg>
+  )
+}
+
 /** "Email Pengurus": a 16×12.3 envelope. */
 export function IconEnvelope({ size = 16, className }: IconProps) {
   return (

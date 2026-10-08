@@ -11,6 +11,7 @@ import { z } from 'zod'
 import { KONDISI } from '#/db/schema'
 import { statusDari } from '#/domain/ketersediaan'
 import { logAksi } from '#/domain/log'
+import { ekstensiBerkas } from '#/domain/unggahan'
 import { todayWib } from '#/lib/dates'
 import { butuhAdmin, butuhSesi } from '#/lib/guards'
 import { newId } from '#/lib/id'
@@ -422,9 +423,23 @@ export const hapusBarang = createServerFn({ method: 'POST' })
 const TIPE_FOTO = ['image/jpeg', 'image/png', 'image/webp']
 const MAKS_FOTO = 2 * 1024 * 1024
 
-/** Upload or replace an item photo in R2 under `photos/` (public data, long cache). */
+/**
+ * Upload or replace an item photo in R2 under `photos/` (public data, long cache).
+ *
+ * FormData, for the same reason `unggahSurat` uses it: a `File` cannot cross the
+ * server-function boundary as JSON. This took `{ barangId, file }` as a plain object until
+ * now, which never reached the server — the call rejected on the client and the photo was
+ * silently never saved.
+ */
 export const unggahFoto = createServerFn({ method: 'POST' })
-  .validator(z.object({ barangId: z.string(), file: z.instanceof(File) }))
+  .validator((data: unknown) => {
+    if (!(data instanceof FormData)) throw new Error('Diharapkan FormData')
+    const barangId = String(data.get('barangId') ?? '')
+    const file = data.get('file')
+    if (!barangId) throw new Error('Barang wajib dipilih')
+    if (!(file instanceof File)) throw new Error('Berkas foto wajib dipilih')
+    return { barangId, file }
+  })
   .handler(async ({ data }) => {
     await butuhAdmin()
     if (!TIPE_FOTO.includes(data.file.type)) {
@@ -436,13 +451,7 @@ export const unggahFoto = createServerFn({ method: 'POST' })
     if (data.file.size > MAKS_FOTO) {
       return { ok: false as const, pesan: 'Ukuran foto maksimal 2 MB.' }
     }
-    const ext =
-      data.file.type === 'image/png'
-        ? 'png'
-        : data.file.type === 'image/webp'
-          ? 'webp'
-          : 'jpg'
-    const key = `photos/${data.barangId}.${ext}`
+    const key = `photos/${data.barangId}.${ekstensiBerkas(data.file.type)}`
     await env.BUCKET.put(key, data.file.stream(), {
       httpMetadata: { contentType: data.file.type },
     })

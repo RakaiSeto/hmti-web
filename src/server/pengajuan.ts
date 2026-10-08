@@ -499,6 +499,9 @@ export const detailPengajuan = createServerFn({ method: 'GET' })
       pengembalian: kembali
         ? {
             catatan: (kembali.catatan as string | null) ?? null,
+            namaFile: (kembali.nama_file as string | null) ?? null,
+            // False for a return recorded before the proof photo was required.
+            adaBukti: Boolean(kembali.file_path),
             oleh: (kembali.oleh as string | null) ?? '—',
             waktu: new Date((kembali.waktu as number) * 1000),
             items: kembaliItems,

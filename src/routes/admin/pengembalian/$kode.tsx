@@ -6,6 +6,7 @@ import { formatTanggal } from '../../../lib/dates'
 import { detailPengajuan } from '../../../server/pengajuan'
 import { catatPengembalian } from '../../../server/siklus'
 import { StatusBadge } from '../../../components/StatusBadge'
+import { UnggahBerkas } from '../../../components/UnggahBerkas'
 import {
   BarisTabel,
   Card,
@@ -42,6 +43,7 @@ function Pengembalian() {
   const [catatan, setCatatan] = useState('')
   const [pesan, setPesan] = useState<string | null>(null)
   const [sibuk, setSibuk] = useState(false)
+  const [bukti, setBukti] = useState<File | null>(null)
   const [baris, setBaris] = useState<Record<string, BarisKembali>>(
     Object.fromEntries(
       (p?.baris ?? []).map((b) => [
@@ -63,29 +65,48 @@ function Pengembalian() {
   const adaRusak = Object.values(baris).some((b) => b.kondisi !== 'baik')
 
   async function kirim() {
+    // Checked here as well as on the server so the message lands next to the field the
+    // operator is looking at, rather than coming back as a rejected round trip.
+    if (!bukti) {
+      setPesan('Foto bukti pengembalian wajib diunggah.')
+      return
+    }
     setSibuk(true)
     setPesan(null)
-    const hasil = await catatPengembalian({
-      data: {
-        kode: p!.kode,
-        catatan,
-        items: p!.baris.map((b) => ({
+    // FormData, not an object: the photo cannot cross the server-function boundary as
+    // JSON. `items` goes as a JSON string for the same reason it is not a plain field.
+    const data = new FormData()
+    data.set('kode', p!.kode)
+    data.set('catatan', catatan)
+    data.set('file', bukti)
+    data.set(
+      'items',
+      JSON.stringify(
+        p!.baris.map((b) => ({
           barangId: b.barang_id,
           kondisi: baris[b.barang_id].kondisi,
           jumlah: baris[b.barang_id].jumlah,
           catatan: baris[b.barang_id].catatan,
         })),
-      },
-    })
-    setSibuk(false)
-    if (!hasil.ok) {
-      setPesan(hasil.pesan)
-      return
+      ),
+    )
+    try {
+      const hasil = await catatPengembalian({ data })
+      if (!hasil.ok) {
+        setPesan(hasil.pesan)
+        return
+      }
+      await router.navigate({
+        to: '/admin/permintaan/$kode',
+        params: { kode: p!.kode },
+      })
+    } catch {
+      // A rejected call (the validator, a dropped connection) reports nothing through
+      // `hasil`; without this the form would just sit there looking busy.
+      setPesan('Pengembalian gagal dicatat. Coba lagi.')
+    } finally {
+      setSibuk(false)
     }
-    await router.navigate({
-      to: '/admin/permintaan/$kode',
-      params: { kode: p!.kode },
-    })
   }
 
   return (
@@ -143,7 +164,7 @@ function Pengembalian() {
             <BarisTabel key={b.barang_id}>
               <Sel className="font-semibold">
                 {b.nama}
-                <span className="block text-xs font-normal text-text-soft">
+                <span className="block text-sm font-normal text-text-soft">
                   dipinjam ×{b.jumlah}
                 </span>
               </Sel>
@@ -213,6 +234,23 @@ function Pengembalian() {
           ))}
         </DataTable>
       </div>
+
+      <Card className="flex flex-col gap-3">
+        <Field
+          label="Foto bukti pengembalian"
+          hint="Wajib diunggah sebelum pengembalian dicatat."
+        >
+          <UnggahBerkas
+            accept="image/jpeg,image/png,image/webp"
+            petunjuk="JPG, PNG, atau WebP, maksimal 8 MB."
+            file={bukti}
+            onPilih={(f) => {
+              setBukti(f)
+              setPesan(null)
+            }}
+          />
+        </Field>
+      </Card>
 
       <Card className="flex flex-col gap-3">
         <Field

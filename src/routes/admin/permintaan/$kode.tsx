@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useRouter } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 
 import { labelAksi } from '../../../domain/labels'
 import { transisiTersedia } from '../../../domain/status'
@@ -11,10 +11,12 @@ import {
 } from '../../../server/pengajuan'
 import { unggahSurat, verifikasiSurat } from '../../../server/siklus'
 import { StatusBadge } from '../../../components/StatusBadge'
+import { UnggahBerkas } from '../../../components/UnggahBerkas'
 import {
   BarisTabel,
   Card,
   DataTable,
+  Field,
   PageHeader,
   Peringatan,
   Sel,
@@ -40,9 +42,9 @@ export const Route = createFileRoute('/admin/permintaan/$kode')({
 function DetailPermintaan() {
   const p = Route.useLoaderData()
   const router = useRouter()
-  const fileRef = useRef<HTMLInputElement>(null)
   const [pesan, setPesan] = useState<string | null>(null)
   const [sibuk, setSibuk] = useState(false)
+  const [suratBaru, setSuratBaru] = useState<File | null>(null)
   const [dialog, setDialog] = useState<'setujui' | 'tolak' | null>(null)
   const [alasan, setAlasan] = useState('')
 
@@ -66,26 +68,40 @@ function DetailPermintaan() {
   const bolehAktifkan = p.status === 'Dibatalkan' && p.peran === 'admin'
   const suratTerverifikasi = p.surat?.status === 'terverifikasi'
 
-  async function jalankan(fn: () => Promise<{ ok: boolean; pesan?: string }>) {
+  async function jalankan(
+    fn: () => Promise<{ ok: boolean; pesan?: string }>,
+  ): Promise<{ ok: boolean; pesan?: string } | null> {
     setSibuk(true)
     setPesan(null)
-    const hasil = await fn()
-    setSibuk(false)
-    if (!hasil.ok) {
-      setPesan(hasil.pesan ?? 'Terjadi kesalahan.')
-      return
+    try {
+      const hasil = await fn()
+      if (!hasil.ok) {
+        setPesan(hasil.pesan ?? 'Terjadi kesalahan.')
+        return hasil
+      }
+      setDialog(null)
+      setAlasan('')
+      await router.invalidate()
+      return hasil
+    } catch {
+      // A rejected call never reports through `hasil`, so it needs its own message —
+      // and the `finally` below is what keeps the buttons from staying disabled.
+      setPesan('Tindakan gagal dijalankan. Coba lagi.')
+      return null
+    } finally {
+      setSibuk(false)
     }
-    setDialog(null)
-    setAlasan('')
-    await router.invalidate()
   }
 
   async function kirimSurat(file: File) {
+    setSuratBaru(file)
     const fd = new FormData()
     fd.set('kode', p!.kode)
     fd.set('file', file)
-    await jalankan(() => unggahSurat({ data: fd }))
-    if (fileRef.current) fileRef.current.value = ''
+    const hasil = await jalankan(() => unggahSurat({ data: fd }))
+    // The stored letter is described above the field, so a file that did not upload must
+    // not be left sitting in it as if it had.
+    if (!hasil?.ok) setSuratBaru(null)
   }
 
   return (
@@ -283,16 +299,15 @@ function DetailPermintaan() {
               </Peringatan>
             ) : null}
 
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/pdf,image/png,image/jpeg"
-              className="text-xs text-text-soft"
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) void kirimSurat(f)
-              }}
-            />
+            <Field label="Unggah surat">
+              <UnggahBerkas
+                accept="application/pdf,image/png,image/jpeg"
+                petunjuk="PDF, JPG, atau PNG, maksimal 8 MB."
+                file={suratBaru}
+                onPilih={(f) => void kirimSurat(f)}
+                sibuk={sibuk}
+              />
+            </Field>
             {p.surat && p.surat.status !== 'terverifikasi' ? (
               <TombolSekunder
                 disabled={sibuk}
@@ -432,6 +447,23 @@ function DetailPermintaan() {
                 Dicatat {p.pengembalian.oleh} pada{' '}
                 {formatWaktu(p.pengembalian.waktu)}.
               </p>
+              {p.pengembalian.adaBukti ? (
+                <a
+                  href={`/api/bukti/${p.kode}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex w-fit items-center gap-3 no-underline"
+                >
+                  <img
+                    src={`/api/bukti/${p.kode}`}
+                    alt={`Bukti pengembalian ${p.kode}`}
+                    className="h-32 w-32 rounded-md object-cover"
+                  />
+                  <span className="text-sm font-semibold text-accent">
+                    Buka foto bukti
+                  </span>
+                </a>
+              ) : null}
             </Card>
           ) : null}
         </div>

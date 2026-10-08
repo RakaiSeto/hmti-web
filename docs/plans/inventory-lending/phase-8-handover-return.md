@@ -22,8 +22,18 @@ Admin or PJ records pengembalian: per-item condition, catatan for rusak/hilang,
 timestamp. Status → `Selesai`. When items are rusak/hilang, the item's jumlah/kondisi
 are updated per the recorded note (BR05) — the update is part of the same transaction
 as the return record. Logged.
+
+**A proof photo is required** (owner, after v2 — see decisions.md D20). The operator
+uploads one image of the items as they come back; the form refuses to submit without it
+and so does the server, which is what makes it a requirement rather than a nudge. Stored
+in R2 under `returns/{kode}.{ext}`, referenced from `pengembalian.file_path`, and served
+staff-only at `/api/bukti/{kode}`. It is shown on the request page next to the recorded
+return, because a `rusak`/`hilang` line is a claim and the photo is what settles it.
+
 **Accepts:** a return marking 1 of 3 units lost reduces the item's available stock and
-shows in the catalog/calendar immediately; the borrower tracking shows Selesai.
+shows in the catalog/calendar immediately; the borrower tracking shows Selesai; the
+proof photo opens from the request page. Submitting the form with no photo attached
+shows "Foto bukti pengembalian wajib diunggah." and records nothing.
 
 ### INV-21 — H-1 letter deadline & auto-cancel (BR02, BR07) + Terlambat
 A cron trigger on the same Worker (daily, WIB midnight) checks requests still

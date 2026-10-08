@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { hanyaAdmin } from '../../../lib/routeGuards'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 
 import { KONDISI } from '../../../db/schema'
 import {
@@ -10,6 +10,7 @@ import {
   simpanBarang,
   unggahFoto,
 } from '../../../server/barang'
+import { UnggahBerkas } from '../../../components/UnggahBerkas'
 import {
   Card,
   Field,
@@ -42,7 +43,6 @@ export const Route = createFileRoute('/admin/barang/$id')({
 function FormBarang() {
   const { barang, kategori } = Route.useLoaderData()
   const router = useRouter()
-  const fileRef = useRef<HTMLInputElement>(null)
   const [nama, setNama] = useState(barang?.nama ?? '')
   const [kategoriId, setKategoriId] = useState(
     barang ? barang.kategoriId : kategori.length > 0 ? kategori[0].id : '',
@@ -53,8 +53,43 @@ function FormBarang() {
   const [deskripsi, setDeskripsi] = useState(barang?.deskripsi ?? '')
   const [pesan, setPesan] = useState<string | null>(null)
   const [sibuk, setSibuk] = useState(false)
+  const [fotoBaru, setFotoBaru] = useState<File | null>(null)
 
   const baru = !barang
+
+  /**
+   * An item photo is uploaded as soon as one is picked — there is no save button for it.
+   *
+   * The picked file stays in state after a successful upload on purpose: `/api/foto/{id}`
+   * is served with an hour-long browser cache, so falling back to it right away would show
+   * the previous photo back to the uploader.
+   *
+   * `finally` rather than a plain `setSibuk(false)` after the await: a rejected call would
+   * otherwise leave the zone inert and reading "Mengunggah…" for good.
+   */
+  async function simpanFoto(f: File) {
+    if (!barang) return
+    setFotoBaru(f)
+    setSibuk(true)
+    setPesan(null)
+    try {
+      const fd = new FormData()
+      fd.set('barangId', barang.id)
+      fd.set('file', f)
+      const hasil = await unggahFoto({ data: fd })
+      if (!hasil.ok) {
+        setPesan(hasil.pesan)
+        setFotoBaru(null)
+        return
+      }
+      await router.invalidate()
+    } catch {
+      setPesan('Foto gagal diunggah. Coba lagi.')
+      setFotoBaru(null)
+    } finally {
+      setSibuk(false)
+    }
+  }
 
   async function simpan() {
     setSibuk(true)
@@ -170,32 +205,17 @@ function FormBarang() {
         </Field>
 
         {!baru ? (
-          <Field label="Foto barang" hint="JPG, PNG, atau WebP, maksimal 2 MB.">
-            <input
-              ref={fileRef}
-              type="file"
+          <Field label="Foto barang">
+            <UnggahBerkas
               accept="image/jpeg,image/png,image/webp"
-              className="text-xs text-text-soft"
-              onChange={async (e) => {
-                const f = e.target.files?.[0]
-                if (!f) return
-                setSibuk(true)
-                const hasil = await unggahFoto({
-                  data: { barangId: barang.id, file: f },
-                })
-                setSibuk(false)
-                if (!hasil.ok) setPesan(hasil.pesan)
-                else await router.invalidate()
-                if (fileRef.current) fileRef.current.value = ''
-              }}
+              petunjuk="JPG, PNG, atau WebP, maksimal 2 MB."
+              file={fotoBaru}
+              onPilih={(f) => void simpanFoto(f)}
+              sibuk={sibuk}
+              gambarTersimpan={
+                barang.fotoPath ? `/api/foto/${barang.id}` : null
+              }
             />
-            {barang.fotoPath ? (
-              <img
-                src={`/api/foto/${barang.id}`}
-                alt={`Foto ${barang.nama}`}
-                className="mt-2 h-32 w-32 rounded-md object-cover"
-              />
-            ) : null}
           </Field>
         ) : null}
       </Card>

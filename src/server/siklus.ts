@@ -11,6 +11,7 @@ import { z } from 'zod'
 import { KONDISI_KEMBALI } from '#/db/schema'
 import { logAksi } from '#/domain/log'
 import { bolehTransisi } from '#/domain/status'
+import { ekstensiBerkas } from '#/domain/unggahan'
 import { butuhPeran, butuhSesi } from '#/lib/guards'
 import { newId } from '#/lib/id'
 import type { HasilHalaman } from '#/lib/tabel'
@@ -52,16 +53,8 @@ export const unggahSurat = createServerFn({ method: 'POST' })
       .first<{ id: string }>()
     if (!p) return { ok: false as const, pesan: 'Pengajuan tidak ditemukan.' }
 
-    const ext =
-      data.file.type === 'application/pdf'
-        ? 'pdf'
-        : data.file.type === 'image/png'
-          ? 'png'
-          : data.file.type === 'image/jpeg'
-            ? 'jpg'
-            : 'webp'
     // Code-based naming, never user-supplied (path traversal, collisions).
-    const key = `letters/${data.kode}.${ext}`
+    const key = `letters/${data.kode}.${ekstensiBerkas(data.file.type)}`
     await env.BUCKET.put(key, data.file.stream(), {
       httpMetadata: { contentType: data.file.type },
     })
@@ -226,6 +219,11 @@ export const catatSerahTerima = createServerFn({ method: 'POST' })
 
 /* --- return (FR16, BR05) -------------------------------------------------- */
 
+const TIPE_BUKTI = ['image/jpeg', 'image/png', 'image/webp']
+/** 8 MB, the letter's cap rather than the 2 MB item-photo one: this is a phone photo taken
+ *  at the counter, and refusing a real one would block the return it is meant to record. */
+const MAKS_BUKTI = 8 * 1024 * 1024
+
 const MasukanPengembalian = z.object({
   kode: z.string(),
   catatan: z.string().trim().max(500).default(''),
@@ -247,11 +245,50 @@ const MasukanPengembalian = z.object({
  * BR05 is the point of this function: a `rusak` or `hilang` line reduces the item's
  * `jumlah` in the same batch as the return record, so stock can never disagree with the
  * record that explains it. `baik` changes nothing.
+ *
+ * The proof photo is required, not optional — a condition recorded as `rusak` with nothing
+ * to look at is exactly the claim the photo exists to settle. FormData rather than JSON for
+ * the same reason `unggahSurat` uses it: a `File` cannot cross the server-function boundary
+ * as JSON, and base64 would inflate the upload by a third. The `items` array rides along as
+ * a JSON string, which is the one thing FormData cannot carry natively.
  */
 export const catatPengembalian = createServerFn({ method: 'POST' })
-  .validator(MasukanPengembalian)
+  .validator((data: unknown) => {
+    if (!(data instanceof FormData)) throw new Error('Diharapkan FormData')
+    const kode = String(data.get('kode') ?? '')
+    const file = data.get('file')
+    if (!kode) throw new Error('Kode pengajuan wajib diisi')
+    if (!(file instanceof File)) {
+      throw new Error('Foto bukti pengembalian wajib diunggah')
+    }
+    const mentah = String(data.get('items') ?? '')
+    let items: unknown
+    try {
+      items = JSON.parse(mentah)
+    } catch {
+      throw new Error('Daftar barang tidak dapat dibaca')
+    }
+    return {
+      kode,
+      file,
+      items: MasukanPengembalian.shape.items.parse(items),
+      catatan: MasukanPengembalian.shape.catatan.parse(
+        String(data.get('catatan') ?? ''),
+      ),
+    }
+  })
   .handler(async ({ data }) => {
     const sesi = await butuhPeran('admin', 'pj_inventaris')
+    if (!TIPE_BUKTI.includes(data.file.type)) {
+      return {
+        ok: false as const,
+        pesan: 'Foto bukti harus JPG, PNG, atau WebP.',
+      }
+    }
+    if (data.file.size > MAKS_BUKTI) {
+      return { ok: false as const, pesan: 'Ukuran foto bukti maksimal 8 MB.' }
+    }
+
     const db = env.DB
     const p = await db
       .prepare(`SELECT id, status FROM pengajuan WHERE kode = ?`)
@@ -270,15 +307,31 @@ export const catatPengembalian = createServerFn({ method: 'POST' })
       }
     }
 
+    // Everything that can reject the submission has run by now, so the object is written
+    // only for a return we are about to record. Code-based key, never user-supplied.
+    const key = `returns/${data.kode}.${ekstensiBerkas(data.file.type)}`
+    await env.BUCKET.put(key, data.file.stream(), {
+      httpMetadata: { contentType: data.file.type },
+    })
+
     const now = Math.floor(Date.now() / 1000)
     const kembId = newId()
     const statements = [
       db
         .prepare(
-          `INSERT INTO pengembalian (id, pengajuan_id, catatan, dicatat_oleh, waktu)
-           VALUES (?, ?, ?, ?, ?)`,
+          `INSERT INTO pengembalian (id, pengajuan_id, catatan, file_path, nama_file,
+                                     dicatat_oleh, waktu)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(kembId, p.id, data.catatan || null, sesi.id, now),
+        .bind(
+          kembId,
+          p.id,
+          data.catatan || null,
+          key,
+          data.file.name,
+          sesi.id,
+          now,
+        ),
       ...data.items.map((it) =>
         db
           .prepare(
@@ -312,6 +365,7 @@ export const catatPengembalian = createServerFn({ method: 'POST' })
     ]
     await db.batch(statements)
 
+    // One entry, not two: the photo is not a separate act from recording the return.
     await logAksi({
       penggunaId: sesi.id,
       penggunaNama: sesi.nama,

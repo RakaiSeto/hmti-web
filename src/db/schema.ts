@@ -244,7 +244,14 @@ export const serahTerimaItem = sqliteTable('serah_terima_item', {
 export const KONDISI_KEMBALI = ['baik', 'rusak', 'hilang'] as const
 export type KondisiKembali = (typeof KONDISI_KEMBALI)[number]
 
-/** Return record (FR16). One per request. */
+/**
+ * Return record (FR16). One per request.
+ *
+ * `file_path`/`nama_file` are the proof photo (BR05-adjacent): the operator photographs the
+ * items as they come back, so a `rusak`/`hilang` line is backed by something a later reader
+ * can look at. Nullable in the column, required by `catatPengembalian` — returns recorded
+ * before the proof existed are real rows and must not be invalidated by the migration.
+ */
 export const pengembalian = sqliteTable('pengembalian', {
   id: text('id').primaryKey(),
   pengajuanId: text('pengajuan_id')
@@ -252,6 +259,8 @@ export const pengembalian = sqliteTable('pengembalian', {
     .unique()
     .references(() => pengajuan.id, { onDelete: 'cascade' }),
   catatan: text('catatan'),
+  filePath: text('file_path'),
+  namaFile: text('nama_file'),
   dicatatOleh: text('dicatat_oleh')
     .notNull()
     .references(() => user.id, { onDelete: 'restrict' }),
