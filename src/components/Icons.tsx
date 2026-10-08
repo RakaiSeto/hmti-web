@@ -23,7 +23,7 @@
  */
 
 /** Width in px. The design states a size per placement; omit it to use the glyph's own. */
-type IconProps = {
+export type IconProps = {
   size?: number
   className?: string
 }
@@ -239,6 +239,256 @@ export function IconEyeOff({ size = 16, className }: IconProps) {
       />
       <circle cx="8" cy="5.33" r="2.35" {...outline} />
       <path d="M2.1 0.7 L13.9 9.96" {...outline} />
+    </svg>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sidebar and topbar glyphs                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The admin shell's row and chrome glyphs.
+ *
+ * The design's sidebar draws one glyph per row and names each in the Kit; the app has no
+ * icon dependency, so they are drawn here in the same visual language as the login card's
+ * glyphs — a 1.2px outline on a 16px box, `currentColor` throughout so a row's active
+ * state colours the glyph along with its label.
+ */
+
+/** "Dasbor": a 2×2 tile grid. */
+export function IconDasbor({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="0.6" y="0.6" width="6.1" height="6.1" rx="1.4" {...outline} />
+      <rect x="9.3" y="0.6" width="6.1" height="6.1" rx="1.4" {...outline} />
+      <rect x="0.6" y="9.3" width="6.1" height="6.1" rx="1.4" {...outline} />
+      <rect x="9.3" y="9.3" width="6.1" height="6.1" rx="1.4" {...outline} />
+    </svg>
+  )
+}
+
+/** "Barang": a crate, seen straight on. */
+export function IconBarang({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="0.6" y="2.9" width="14.8" height="12.5" rx="1.4" {...outline} />
+      <path d="M0.6 6.6 H15.4" {...outline} />
+      <path d="M8 6.6 V15.4" {...outline} />
+    </svg>
+  )
+}
+
+/** "Kategori": stacked layers. */
+export function IconKategori({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M8 1.5 L14.9 5.1 L8 8.7 L1.1 5.1 Z" {...outline} />
+      <path d="M2.2 8.1 L8 11 L13.8 8.1" {...outline} />
+      <path d="M2.2 11.2 L8 14.1 L13.8 11.2" {...outline} />
+    </svg>
+  )
+}
+
+/** "Peminjaman Aktif": a unit leaving the shelf. */
+export function IconPeminjaman({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="0.6" y="4.1" width="6.6" height="7.8" rx="1.4" {...outline} />
+      <path d="M9.6 8 H14.5" {...outline} />
+      <path d="M12.3 5.8 L14.5 8 L12.3 10.2" {...outline} />
+    </svg>
+  )
+}
+
+/** "Pengembalian": a unit coming back. */
+export function IconPengembalian({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M2.4 4.6 H9.4 A4.2 4.2 0 0 1 9.4 13" {...outline} />
+      <path d="M5.4 1.6 L2.4 4.6 L5.4 7.6" {...outline} />
+    </svg>
+  )
+}
+
+/** "Permintaan": an inbox tray. */
+export function IconPermintaan({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M1.4 9.1 L3.7 2.9 A1.4 1.4 0 0 1 5 2 H11 A1.4 1.4 0 0 1 12.3 2.9 L14.6 9.1 V12.5 A1.4 1.4 0 0 1 13.2 13.9 H2.8 A1.4 1.4 0 0 1 1.4 12.5 Z"
+        {...outline}
+      />
+      <path d="M1.4 9.1 H5.3 L6.5 11.3 H9.5 L10.7 9.1 H14.6" {...outline} />
+    </svg>
+  )
+}
+
+/** "Laporan": a bar chart. */
+export function IconLaporan({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M1.6 14.4 H14.4" {...outline} />
+      <rect x="3.1" y="9.4" width="2.6" height="4.2" rx="0.7" {...outline} />
+      <rect x="6.7" y="6.4" width="2.6" height="7.2" rx="0.7" {...outline} />
+      <rect x="10.3" y="3.4" width="2.6" height="10.2" rx="0.7" {...outline} />
+    </svg>
+  )
+}
+
+/** "Pengguna": two people. */
+export function IconPengguna({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <circle cx="5.9" cy="4.9" r="2.9" {...outline} />
+      <path
+        d="M1.3 14.4 C1.3 11.4 3.4 9.5 5.9 9.5 C8.4 9.5 10.5 11.4 10.5 14.4"
+        {...outline}
+      />
+      <path d="M10.7 2.4 A2.9 2.9 0 0 1 10.7 7.4" {...outline} />
+      <path d="M12.4 9.9 C13.9 10.7 14.7 12.4 14.7 14.4" {...outline} />
+    </svg>
+  )
+}
+
+/** "Log Aktivitas": a list. */
+export function IconLog({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M5.6 3.4 H14.4" {...outline} />
+      <path d="M5.6 8 H14.4" {...outline} />
+      <path d="M5.6 12.6 H14.4" {...outline} />
+      <circle cx="2.2" cy="3.4" r="0.95" fill="currentColor" />
+      <circle cx="2.2" cy="8" r="0.95" fill="currentColor" />
+      <circle cx="2.2" cy="12.6" r="0.95" fill="currentColor" />
+    </svg>
+  )
+}
+
+/** The topbar's notification affordance. */
+export function IconBell({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M8 1.6 C5.7 1.6 3.9 3.4 3.9 5.7 V9.1 L2.6 11.7 H13.4 L12.1 9.1 V5.7 C12.1 3.4 10.3 1.6 8 1.6 Z"
+        {...outline}
+      />
+      <path d="M6.3 13.6 A1.8 1.8 0 0 0 9.7 13.6" {...outline} />
+    </svg>
+  )
+}
+
+/** The account menu's disclosure caret. */
+export function IconChevronDown({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M3.6 6.2 L8 10.6 L12.4 6.2" {...outline} />
+    </svg>
+  )
+}
+
+/** The account menu's "Profil Saya" row. */
+export function IconProfil({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <circle cx="8" cy="8" r="7.2" {...outline} />
+      <circle cx="8" cy="6.3" r="2.3" {...outline} />
+      <path
+        d="M3.6 13.2 C4.6 11.3 6.2 10.3 8 10.3 C9.8 10.3 11.4 11.3 12.4 13.2"
+        {...outline}
+      />
+    </svg>
+  )
+}
+
+/** The account menu's "Keluar" row. */
+export function IconLogout({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M9.5 14.4 H3.5 A1.5 1.5 0 0 1 2 12.9 V3.1 A1.5 1.5 0 0 1 3.5 1.6 H9.5"
+        {...outline}
+      />
+      <path d="M10.9 5.3 L13.6 8 L10.9 10.7" {...outline} />
+      <path d="M13.6 8 H6.3" {...outline} />
     </svg>
   )
 }

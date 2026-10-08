@@ -1,4 +1,18 @@
+import type { ComponentType } from 'react'
+
 import type { Peran } from '#/db/schema'
+import {
+  IconBarang,
+  IconDasbor,
+  IconKategori,
+  IconLaporan,
+  IconLog,
+  IconPeminjaman,
+  IconPengembalian,
+  IconPengguna,
+  IconPermintaan,
+} from '../Icons'
+import type { IconProps } from '../Icons'
 
 /**
  * The admin sidebar, per decisions.md D16: built from the requirements, not copied from
@@ -6,12 +20,14 @@ import type { Peran } from '#/db/schema'
  * omits `Profil Saya`; both are corrected here, and the design itself is left alone.
  *
  * `badge` is a live count rendered as the design's yellow pill (the `14` on Permintaan in
- * frame 06).
+ * frame 06). `icon` is the row's glyph; the design gives every row one, and the shell
+ * colours it with the row's text.
  */
 export interface NavItem {
   label: string
   to: string
   badge?: number
+  icon: ComponentType<IconProps>
 }
 
 export interface NavGroup {
@@ -32,33 +48,46 @@ export interface NavCounts {
 export function navAdmin(counts: NavCounts): NavConfig {
   return {
     groups: [
-      { items: [{ label: 'Dasbor', to: '/admin/dasbor' }] },
+      {
+        items: [{ label: 'Dasbor', to: '/admin/dasbor', icon: IconDasbor }],
+      },
       {
         judul: 'Inventaris',
         items: [
-          { label: 'Barang', to: '/admin/barang' },
-          { label: 'Kategori', to: '/admin/kategori' },
+          { label: 'Barang', to: '/admin/barang', icon: IconBarang },
+          { label: 'Kategori', to: '/admin/kategori', icon: IconKategori },
         ],
       },
       {
         judul: 'Peminjaman',
         items: [
-          { label: 'Peminjaman Aktif', to: '/admin/peminjaman' },
-          { label: 'Pengembalian', to: '/admin/pengembalian' },
+          {
+            label: 'Peminjaman Aktif',
+            to: '/admin/peminjaman',
+            icon: IconPeminjaman,
+          },
+          {
+            label: 'Pengembalian',
+            to: '/admin/pengembalian',
+            icon: IconPengembalian,
+          },
           {
             label: 'Permintaan',
             to: '/admin/permintaan',
             badge: counts.permintaanBaru,
+            icon: IconPermintaan,
           },
         ],
       },
-      { judul: 'Laporan', items: [{ label: 'Laporan', to: '/admin/laporan' }] },
+      {
+        judul: 'Laporan',
+        items: [{ label: 'Laporan', to: '/admin/laporan', icon: IconLaporan }],
+      },
       {
         judul: 'Sistem',
         items: [
-          { label: 'Pengguna', to: '/admin/pengguna' },
-          { label: 'Log Aktivitas', to: '/admin/log' },
-          { label: 'Profil Saya', to: '/admin/profil' },
+          { label: 'Pengguna', to: '/admin/pengguna', icon: IconPengguna },
+          { label: 'Log Aktivitas', to: '/admin/log', icon: IconLog },
         ],
       },
     ],
@@ -76,24 +105,38 @@ export function navAdmin(counts: NavCounts): NavConfig {
 export function navPj(counts: NavCounts): NavConfig {
   return {
     groups: [
-      { items: [{ label: 'Dasbor', to: '/admin/dasbor' }] },
+      {
+        items: [{ label: 'Dasbor', to: '/admin/dasbor', icon: IconDasbor }],
+      },
       {
         judul: 'Inventaris',
-        items: [{ label: 'Inventaris', to: '/admin/barang' }],
+        items: [{ label: 'Inventaris', to: '/admin/barang', icon: IconBarang }],
       },
       {
         judul: 'Peminjaman',
         items: [
-          { label: 'Peminjaman Aktif', to: '/admin/peminjaman' },
-          { label: 'Pengembalian', to: '/admin/pengembalian' },
+          {
+            label: 'Peminjaman Aktif',
+            to: '/admin/peminjaman',
+            icon: IconPeminjaman,
+          },
+          {
+            label: 'Pengembalian',
+            to: '/admin/pengembalian',
+            icon: IconPengembalian,
+          },
           {
             label: 'Permintaan',
             to: '/admin/permintaan',
             badge: counts.permintaanBaru,
+            icon: IconPermintaan,
           },
         ],
       },
-      { judul: 'Laporan', items: [{ label: 'Laporan', to: '/admin/laporan' }] },
+      {
+        judul: 'Laporan',
+        items: [{ label: 'Laporan', to: '/admin/laporan', icon: IconLaporan }],
+      },
     ],
   }
 }
