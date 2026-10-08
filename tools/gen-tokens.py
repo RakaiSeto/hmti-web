@@ -66,6 +66,33 @@ COLOR_MAP = {
 # Tokens that exist only as editor chrome (component-boundary guides), never design content.
 EXCLUDE = {"indigo"}
 
+# Light-mode overrides, keyed by design token name.
+#
+# The canvas's four status containers are desaturated to near-grey (#f3f6f4, #f9f4f0,
+# #faf3f3, #f2f6f8) — a "success" alert reads as a plain grey box. The design system in
+# design-system/ uses the standard status fills for the same roles; the owner then asked
+# for the -100 step on top of its -50, so these are the -100 values. The dark and
+# high-contrast blocks are left as harvested: they are already saturated.
+#
+# The two light status TEXT tokens are pinned with them, because a -100 fill costs the
+# text contrast: `--color-warning` #b27100 was 3.85:1 on the -50 fill and 3.59:1 on this
+# one, and it failed AA even on pure white (4.0:1) before any of this. #92400e / #be123c
+# clear AA on the -100 fills (6.4:1 / 5.1:1) and on white.
+#
+# An override may also *introduce* a token no dump carries. `secondary.container` is one:
+# COLOR_MAP names it, the canvas never does, so `bg-accent-container` was a dead class and
+# the Disetujui badge had no fill at all. Like `secondary.mid`, it has no dark value by
+# design (see the generator's footer), so it inherits this one in dark mode.
+LIGHT_OVERRIDE = {
+    "color.success.container": "#dcfce7",
+    "color.warning.container": "#fef3c7",
+    "color.error.container": "#fee2e2",
+    "color.info.container": "#dbeafe",
+    "secondary.container": "#dbeafe",
+    "color.warning": "#92400e",
+    "color.error": "#be123c",
+}
+
 SPACING = {"none": "0", "xs": "4px", "sm": "8px", "md": "12px", "lg": "16px",
            "xl": "24px", "2xl": "32px"}
 RADIUS = {"xs": "2px", "sm": "4px", "md": "6px", "lg": "8px", "xl": "12px",
@@ -136,6 +163,15 @@ def main():
     out.append("     It is a FILL. Pair it with --color-brand-ink (#0A0A0A) = 12.06:1.")
     out.append("     --color-ink (#011638) is the dark surface; text on it passes AA.")
     out.append("   Verify any new pair before shipping it; do not eyeball.")
+    out.append("")
+    out.append("   OVERRIDES: the four light-mode status containers are pinned to the -100")
+    out.append("   fills (#dcfce7 / #fef3c7 / #fee2e2 / #dbeafe). The canvas's values are")
+    out.append("   desaturated to near-grey and read as uncoloured in an alert.")
+    out.append("   `color.warning` and `color.error` are pinned with them (#92400e /")
+    out.append("   #be123c) so the -100 fill does not cost the text its AA contrast.")
+    out.append("   `secondary.container` is introduced the same way: the canvas never")
+    out.append("   carries it, so `bg-accent-container` had no fill. See LIGHT_OVERRIDE in")
+    out.append("   tools/gen-tokens.py.")
     out.append("   ========================================================================== */")
     out.append("")
     out.append('@import "tailwindcss";')
@@ -182,9 +218,15 @@ def main():
     out.append("")
     out.append("  /* --- colour ----------------------------------------------------------- */")
     for ds_name, tw_name in COLOR_MAP.items():
-        if tw_name is None or ds_name not in rec:
+        if tw_name is None:
             continue
-        light = pick(rec[ds_name]["light"])
+        # An override may introduce a token the canvas never carries (secondary.container),
+        # so it is consulted before the harvest-presence check, not after it.
+        light = LIGHT_OVERRIDE.get(ds_name)
+        if light is None:
+            if ds_name not in rec:
+                continue
+            light = pick(rec[ds_name]["light"])
         if not light:
             continue
         out.append(f"  --color-{tw_name}: {light}; /* {ds_name} */")

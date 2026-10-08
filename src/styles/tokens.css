@@ -19,6 +19,15 @@
      It is a FILL. Pair it with --color-brand-ink (#0A0A0A) = 12.06:1.
      --color-ink (#011638) is the dark surface; text on it passes AA.
    Verify any new pair before shipping it; do not eyeball.
+
+   OVERRIDES: the four light-mode status containers are pinned to the -100
+   fills (#dcfce7 / #fef3c7 / #fee2e2 / #dbeafe). The canvas's values are
+   desaturated to near-grey and read as uncoloured in an alert.
+   `color.warning` and `color.error` are pinned with them (#92400e /
+   #be123c) so the -100 fill does not cost the text its AA contrast.
+   `secondary.container` is introduced the same way: the canvas never
+   carries it, so `bg-accent-container` had no fill. See LIGHT_OVERRIDE in
+   tools/gen-tokens.py.
    ========================================================================== */
 
 @import 'tailwindcss';
@@ -85,6 +94,7 @@
   --color-accent: #0d21a1; /* secondary.mid */
   --color-accent-firm: #0b1f84; /* secondary.firm */
   --color-accent-soft: #7393de; /* secondary.soft */
+  --color-accent-container: #dbeafe; /* secondary.container */
   --color-ink: #011638; /* tertiary.mid */
   --color-ink-firm: #010e26; /* tertiary.firm */
   --color-neutral-intense: #292929; /* neutral.intense */
@@ -101,14 +111,14 @@
   --color-line: #c6c6c6; /* color.outline */
   --color-line-soft: #e1e1e1; /* color.outline.variant */
   --color-success: #059669; /* color.success */
-  --color-success-container: #f3f6f4; /* color.success.container */
+  --color-success-container: #dcfce7; /* color.success.container */
   --color-success-text: #00583c; /* color.success.text */
-  --color-warning: #b27100; /* color.warning */
-  --color-warning-container: #f9f4f0; /* color.warning.container */
-  --color-error: #e11d48; /* color.error */
-  --color-error-container: #faf3f3; /* color.error.container */
+  --color-warning: #92400e; /* color.warning */
+  --color-warning-container: #fef3c7; /* color.warning.container */
+  --color-error: #be123c; /* color.error */
+  --color-error-container: #fee2e2; /* color.error.container */
   --color-info: #0284c7; /* color.info */
-  --color-info-container: #f2f6f8; /* color.info.container */
+  --color-info-container: #dbeafe; /* color.info.container */
   --color-shadow: #141414; /* color.shadow */
 }
 

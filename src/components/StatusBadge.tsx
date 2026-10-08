@@ -8,6 +8,11 @@ import { LABEL_STATUS } from '#/domain/status'
  * Note this is *not* the design system's `.st-*` classes in `design-system/app.css`;
  * those are the retired pre-v2 vocabulary (`draft`, `partial`, `overdue`…). The app maps
  * the v2 states onto the design's semantic colour tokens instead.
+ *
+ * The two closed states sit on `neutral-subtle`, not `surface-container`: a badge is drawn
+ * on a card, which is already `surface`, and those two fills are one value apart (#F0F0F0
+ * on #EFF0F2) — the badge came out as bare text. `text-text-disabled` was likewise 1.5:1
+ * on it, so both closed states use `text-text-soft`.
  */
 type Status = StatusPengajuan | 'Terlambat'
 
@@ -16,9 +21,9 @@ const GAYA: Record<Status, string> = {
   Disetujui: 'bg-accent-container text-accent',
   Ditolak: 'bg-error-container text-error',
   Dipinjam: 'bg-success-container text-success-text',
-  Selesai: 'bg-surface-container text-text-soft',
+  Selesai: 'bg-neutral-subtle text-text-soft',
   Terlambat: 'bg-error-container text-error',
-  Dibatalkan: 'bg-surface-container text-text-disabled',
+  Dibatalkan: 'bg-neutral-subtle text-text-soft',
 }
 
 export function StatusBadge({ status }: { status: Status }) {
