@@ -1,4 +1,6 @@
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
+
+import { PendingKonten } from './components/admin/Skeleton'
 import { routeTree } from './routeTree.gen'
 
 // Loads TanStack Start's router type augmentations. Without this import in the program,
@@ -13,6 +15,14 @@ export function getRouter() {
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
+    // A route change used to leave the old page frozen with no sign that anything was
+    // happening. `PendingKonten` picks a skeleton from the path and returns nothing
+    // outside `/admin`, so the public pages are unchanged.
+    defaultPendingComponent: PendingKonten,
+    // Show it only once a load is slow enough to notice, and keep it up long enough to
+    // read, so a preloaded or cached route never flashes a skeleton for one frame.
+    defaultPendingMs: 200,
+    defaultPendingMinMs: 400,
   })
 
   return router

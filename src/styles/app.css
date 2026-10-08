@@ -13,3 +13,25 @@
 @import '@fontsource/montserrat/600.css';
 @import '@fontsource/montserrat/700.css';
 @import './tokens.css';
+
+/*
+ * The admin skeleton's pulse, used by components/admin/Skeleton.tsx.
+ *
+ * Motion is opt-in: with `prefers-reduced-motion: reduce` the blocks are simply still,
+ * which still reads as "not the real page" because the shapes are placeholders.
+ */
+@keyframes denyut-skeleton {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-denyut {
+    animation: denyut-skeleton 1.4s ease-in-out infinite;
+  }
+}
