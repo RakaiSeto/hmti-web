@@ -20,9 +20,12 @@ import { butuhPeran, butuhSesi } from '#/lib/guards'
 import { newId, newKode, normaliseKode } from '#/lib/id'
 import type { HasilHalaman } from '#/lib/tabel'
 import { PER_HALAMAN } from '#/lib/tabel'
+import { kontakSah, tanggalSah } from '#/lib/validasi'
 import { ambilHalaman, pilihUrut, susunWhere } from './query'
 
-const tanggal = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal tidak valid')
+const tanggal = z
+  .string()
+  .refine(tanggalSah, 'Tanggal tidak valid. Gunakan format YYYY-MM-DD.')
 
 const BarisMasuk = z.object({
   barangId: z.string().min(1),
@@ -36,7 +39,12 @@ const MasukanPengajuan = z.object({
     .trim()
     .min(2, 'Nama penanggung jawab wajib diisi')
     .max(120),
-  kontak: z.string().trim().min(8, 'Nomor WhatsApp wajib diisi').max(32),
+  kontak: z
+    .string()
+    .trim()
+    .min(8, 'Nomor WhatsApp wajib diisi')
+    .max(32)
+    .refine(kontakSah, 'Nomor WhatsApp tidak valid. Contoh: 0812-3456-7890'),
   tglPinjam: tanggal,
   tglKembali: tanggal,
   keperluan: z.string().trim().min(3, 'Keperluan wajib diisi').max(500),

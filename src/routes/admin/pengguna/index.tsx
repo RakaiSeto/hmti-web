@@ -219,6 +219,7 @@ function Pengguna() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nama">
               <input
+                maxLength={120}
                 className={inputCls}
                 value={form.nama}
                 onChange={(e) => setForm({ ...form, nama: e.target.value })}

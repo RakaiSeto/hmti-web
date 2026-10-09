@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 
 import { statusDari } from '../../domain/ketersediaan'
 import { formatTanggal, todayWib } from '../../lib/dates'
+import { kontakSah } from '../../lib/validasi'
 import {
   daftarBarangUntukForm,
   daftarKategoriPublik,
@@ -116,25 +117,34 @@ function FormPeminjaman() {
     setSibuk(true)
     setPesan(null)
     setKurang([])
-    const hasil = await kirimPengajuan({
-      data: {
-        organisasi,
-        penanggungJawab,
-        kontak,
-        tglPinjam,
-        tglKembali,
-        keperluan,
-        baris,
-      },
-    })
-    setSibuk(false)
-    if (!hasil.ok) {
-      setPesan(hasil.pesan ?? 'Pengajuan tidak dapat diproses.')
-      setKurang(hasil.kekurangan ?? [])
-      return
+    try {
+      const hasil = await kirimPengajuan({
+        data: {
+          organisasi,
+          penanggungJawab,
+          kontak,
+          tglPinjam,
+          tglKembali,
+          keperluan,
+          baris,
+        },
+      })
+      if (!hasil.ok) {
+        setPesan(hasil.pesan ?? 'Pengajuan tidak dapat diproses.')
+        setKurang(hasil.kekurangan ?? [])
+        return
+      }
+      setKode(hasil.kode!)
+      await router.invalidate()
+    } catch {
+      // A rejected call — the validator refusing a field, a dropped connection — reports
+      // nothing through `hasil`. Without this the button would read "Mengirim…" for good.
+      setPesan(
+        'Pengajuan gagal dikirim. Periksa kembali data Anda, lalu coba lagi.',
+      )
+    } finally {
+      setSibuk(false)
     }
-    setKode(hasil.kode!)
-    await router.invalidate()
   }
 
   if (kode) {
@@ -212,6 +222,7 @@ function FormPeminjaman() {
                 <Field label="Nama organisasi" wajib>
                   <input
                     required
+                    maxLength={160}
                     className={inputCls}
                     placeholder="mis. Workshop Robotika"
                     value={organisasi}
@@ -221,14 +232,28 @@ function FormPeminjaman() {
                 <Field label="Nama penanggung jawab" wajib>
                   <input
                     required
+                    maxLength={120}
                     className={inputCls}
                     value={penanggungJawab}
                     onChange={(e) => setPenanggungJawab(e.target.value)}
                   />
                 </Field>
-                <Field label="No. WhatsApp" wajib>
+                <Field
+                  label="No. WhatsApp"
+                  wajib
+                  hint="Angka, boleh diawali +62. Contoh: 0812-3456-7890."
+                  error={
+                    kontak.trim() && !kontakSah(kontak)
+                      ? 'Nomor tidak valid. Hanya angka, spasi, tanda hubung, dan + di depan.'
+                      : undefined
+                  }
+                >
                   <input
                     required
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    maxLength={32}
                     className={inputCls}
                     placeholder="0812-3456-7890"
                     value={kontak}
@@ -238,6 +263,7 @@ function FormPeminjaman() {
                 <Field label="Keperluan" wajib>
                   <input
                     required
+                    maxLength={500}
                     className={inputCls}
                     placeholder="mis. Seminar nasional"
                     value={keperluan}
@@ -456,7 +482,7 @@ function FormPeminjaman() {
                   baris.length === 0 ||
                   organisasi.trim().length < 2 ||
                   penanggungJawab.trim().length < 2 ||
-                  kontak.trim().length < 8 ||
+                  !kontakSah(kontak) ||
                   keperluan.trim().length < 3 ||
                   !tglKembali ||
                   tglKembali <= tglPinjam

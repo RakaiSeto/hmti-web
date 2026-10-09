@@ -146,6 +146,7 @@ function FormBarang() {
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nama barang">
             <input
+              maxLength={120}
               className={inputCls}
               value={nama}
               onChange={(e) => setNama(e.target.value)}
@@ -168,6 +169,7 @@ function FormBarang() {
             <input
               type="number"
               min={0}
+              max={9999}
               className={inputCls}
               value={jumlah}
               onChange={(e) =>
@@ -190,6 +192,7 @@ function FormBarang() {
           </Field>
           <Field label="Lokasi penyimpanan">
             <input
+              maxLength={120}
               className={inputCls}
               value={lokasi}
               onChange={(e) => setLokasi(e.target.value)}
@@ -198,6 +201,7 @@ function FormBarang() {
         </div>
         <Field label="Deskripsi">
           <textarea
+            maxLength={1000}
             className={`${inputCls} min-h-24`}
             value={deskripsi}
             onChange={(e) => setDeskripsi(e.target.value)}

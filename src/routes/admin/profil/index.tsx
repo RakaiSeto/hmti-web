@@ -63,6 +63,7 @@ function ProfilSaya() {
           </h2>
           <Field label="Nama">
             <input
+              maxLength={120}
               className={inputCls}
               value={nama}
               onChange={(e) => setNama(e.target.value)}

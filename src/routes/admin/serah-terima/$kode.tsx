@@ -133,6 +133,7 @@ function SerahTerima() {
           <Field label="Nama penerima" wajib>
             <input
               required
+              maxLength={120}
               className={inputCls}
               value={penerima}
               onChange={(e) => setPenerima(e.target.value)}
@@ -148,6 +149,7 @@ function SerahTerima() {
         </div>
         <Field label="Catatan (opsional)">
           <textarea
+            maxLength={500}
             className={`${inputCls} min-h-20`}
             value={catatan}
             onChange={(e) => setCatatan(e.target.value)}

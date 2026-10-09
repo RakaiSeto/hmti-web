@@ -216,6 +216,7 @@ function Pengembalian() {
               <Sel>
                 <input
                   aria-label={`Catatan ${b.nama}`}
+                  maxLength={300}
                   className={`${inputCls} w-full`}
                   placeholder="—"
                   value={baris[b.barang_id].catatan}
@@ -263,6 +264,7 @@ function Pengembalian() {
           }
         >
           <textarea
+            maxLength={500}
             className={`${inputCls} min-h-20`}
             value={catatan}
             onChange={(e) => setCatatan(e.target.value)}

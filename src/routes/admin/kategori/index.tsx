@@ -159,6 +159,7 @@ function Kategori() {
         <div className="min-w-64 flex-1">
           <Field label={editId ? 'Ubah nama kategori' : 'Kategori baru'}>
             <input
+              maxLength={60}
               className={inputCls}
               value={nama}
               onChange={(e) => setNama(e.target.value)}
