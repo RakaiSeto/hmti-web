@@ -1,7 +1,9 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import { ubahProfilSendiri } from '../../../server/admin'
+import { PESAN_SANDI, sandiSah } from '../../../lib/validasi'
+
+import { gantiSandi, ubahProfilSendiri } from '../../../server/admin'
 import {
   Card,
   Field,
@@ -20,14 +22,18 @@ export const Route = createFileRoute('/admin/profil/')({
  * Admin-only, per the v2 requirements: an admin edits their own name and password, while
  * a PJ's password is reset by an admin. That is why this route is absent from `NAV_PJ`.
  *
- * The password change goes through Better Auth's own client rather than a server
- * function, so the current password is verified by the library that owns the credential.
+ * The password change goes through `gantiSandi`, which wraps Better Auth's own endpoint so
+ * the current password is still verified by the library that owns the credential — but the
+ * new one is checked against our policy first. Better Auth's config carries only a length
+ * range, so calling its client directly would let this page and the admin's user form
+ * enforce different rules.
  */
 function ProfilSaya() {
   const { sesi } = Route.useRouteContext()
   const router = useRouter()
   const [nama, setNama] = useState(sesi.nama)
   const [pesan, setPesan] = useState<string | null>(null)
+  const [galat, setGalat] = useState<string | null>(null)
   const [sibuk, setSibuk] = useState(false)
 
   if (sesi.peran !== 'admin') {
@@ -51,6 +57,15 @@ function ProfilSaya() {
           className="rounded-md bg-success-container px-4 py-3 text-sm font-semibold text-success-text"
         >
           {pesan}
+        </p>
+      ) : null}
+
+      {galat ? (
+        <p
+          role="alert"
+          className="rounded-md bg-error-container px-4 py-3 text-sm font-semibold text-error"
+        >
+          {galat}
         </p>
       ) : null}
 
@@ -86,10 +101,17 @@ function ProfilSaya() {
               disabled={sibuk || nama.trim().length < 2}
               onClick={async () => {
                 setSibuk(true)
-                await ubahProfilSendiri({ data: { nama } })
-                setSibuk(false)
-                setPesan('Nama tersimpan.')
-                await router.invalidate()
+                setPesan(null)
+                setGalat(null)
+                try {
+                  await ubahProfilSendiri({ data: { nama } })
+                  await router.invalidate()
+                  setPesan('Nama tersimpan.')
+                } catch {
+                  setGalat('Nama gagal disimpan. Coba lagi.')
+                } finally {
+                  setSibuk(false)
+                }
               }}
             >
               Simpan nama
@@ -97,7 +119,12 @@ function ProfilSaya() {
           </div>
         </Card>
 
-        <UbahSandi onSukses={() => setPesan('Kata sandi tersimpan.')} />
+        <UbahSandi
+          onSukses={() => {
+            setGalat(null)
+            setPesan('Kata sandi tersimpan.')
+          }}
+        />
       </div>
     </div>
   )
@@ -129,7 +156,11 @@ function UbahSandi({ onSukses }: { onSukses: () => void }) {
             onChange={(e) => setLama(e.target.value)}
           />
         </Field>
-        <Field label="Kata sandi baru" hint="Minimal 8 karakter.">
+        <Field
+          label="Kata sandi baru"
+          hint="Minimal 8 karakter, tanpa spasi, memuat huruf kecil, huruf besar, dan angka."
+          error={baru && !sandiSah(baru) ? PESAN_SANDI : undefined}
+        >
           <input
             type="password"
             autoComplete="new-password"
@@ -158,24 +189,27 @@ function UbahSandi({ onSukses }: { onSukses: () => void }) {
 
       <div className="mt-2 flex">
         <TombolUtama
-          disabled={sibuk || baru.length < 8 || !cocok}
+          disabled={sibuk || !sandiSah(baru) || !cocok}
           onClick={async () => {
             setSibuk(true)
             setPesan(null)
-            const { authClient } = await import('../../../lib/auth-client')
-            const { error } = await authClient.changePassword({
-              currentPassword: lama,
-              newPassword: baru,
-            })
-            setSibuk(false)
-            if (error) {
-              setPesan('Kata sandi saat ini salah.')
-              return
+            try {
+              const hasil = await gantiSandi({ data: { lama, baru } })
+              if (!hasil.ok) {
+                setPesan(hasil.pesan)
+                return
+              }
+              setLama('')
+              setBaru('')
+              setKonfirmasi('')
+              onSukses()
+            } catch {
+              // A rejected call reports nothing through `hasil` — an expired session, a
+              // dropped connection. Without this the button stays on "Menyimpan…".
+              setPesan('Kata sandi gagal diubah. Coba lagi.')
+            } finally {
+              setSibuk(false)
             }
-            setLama('')
-            setBaru('')
-            setKonfirmasi('')
-            onSukses()
           }}
         >
           Simpan kata sandi

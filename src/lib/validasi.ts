@@ -53,3 +53,31 @@ export function tanggalSah(teks: string): boolean {
   const d = new Date(`${teks}T00:00:00Z`)
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === teks
 }
+
+/** Shortest password the policy accepts. */
+export const PANJANG_SANDI = 8
+
+/** The rule in one sentence, so the form and the server say the same thing. */
+export const PESAN_SANDI =
+  'Kata sandi minimal 8 karakter, tanpa spasi, serta memuat huruf kecil, huruf besar, dan angka.'
+
+/**
+ * Does this password meet the policy?
+ *
+ * Eight characters, no whitespace, and at least one lowercase letter, one uppercase letter
+ * and one digit. Deliberately not a "must contain a symbol" rule: the length floor and the
+ * three character classes are what was asked for, and every rule beyond that is another
+ * reason a legitimate password gets refused.
+ *
+ * The no-whitespace clause is what closes the case that prompted this — `z.string().min(8)`
+ * accepted eight spaces, which is a password nobody can be told over the phone.
+ */
+export function sandiSah(sandi: string): boolean {
+  return (
+    sandi.length >= PANJANG_SANDI &&
+    !/\s/.test(sandi) &&
+    /[a-z]/.test(sandi) &&
+    /[A-Z]/.test(sandi) &&
+    /\d/.test(sandi)
+  )
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { kontakSah, normalkanKontak, tanggalSah } from './validasi'
+import { kontakSah, normalkanKontak, sandiSah, tanggalSah } from './validasi'
 
 describe('kontakSah — is this a phone number', () => {
   it('accepts the shapes people actually type', () => {
@@ -71,5 +71,31 @@ describe('tanggalSah — a real calendar date', () => {
     expect(tanggalSah('09-10-2026')).toBe(false)
     expect(tanggalSah('2026-10-09T00:00:00Z')).toBe(false)
     expect(tanggalSah('')).toBe(false)
+  })
+})
+
+describe('sandiSah — the password policy', () => {
+  it('accepts a password with the three classes and no spaces', () => {
+    expect(sandiSah('Rakai123')).toBe(true)
+    expect(sandiSah('hmtiPolinema2026')).toBe(true)
+    expect(sandiSah('aB3defgh')).toBe(true)
+  })
+
+  it('rejects the case that prompted this: eight spaces', () => {
+    expect(sandiSah('        ')).toBe(false)
+    expect(sandiSah('Rakai 123')).toBe(false)
+    expect(sandiSah('Rakai\t123')).toBe(false)
+    expect(sandiSah('Rakai\n123')).toBe(false)
+  })
+
+  it('rejects a password missing any one class', () => {
+    expect(sandiSah('rakai123')).toBe(false) // no uppercase
+    expect(sandiSah('RAKAI123')).toBe(false) // no lowercase
+    expect(sandiSah('RakaiRakai')).toBe(false) // no digit
+  })
+
+  it('rejects one that is too short, even with all three classes', () => {
+    expect(sandiSah('aB3defg')).toBe(false)
+    expect(sandiSah('')).toBe(false)
   })
 })

@@ -94,36 +94,49 @@ function FormBarang() {
   async function simpan() {
     setSibuk(true)
     setPesan(null)
-    const hasil = await simpanBarang({
-      data: {
-        id: barang?.id,
-        nama,
-        kategoriId,
-        jumlah,
-        kondisi: kondisi as (typeof KONDISI)[number],
-        lokasi,
-        deskripsi,
-      },
-    })
-    setSibuk(false)
-    if (!hasil.ok) {
-      setPesan(hasil.pesan)
-      return
+    try {
+      const hasil = await simpanBarang({
+        data: {
+          id: barang?.id,
+          nama,
+          kategoriId,
+          jumlah,
+          kondisi: kondisi as (typeof KONDISI)[number],
+          lokasi,
+          deskripsi,
+        },
+      })
+      if (!hasil.ok) {
+        setPesan(hasil.pesan)
+        return
+      }
+      await router.navigate({ to: '/admin/barang' })
+    } catch {
+      // A rejected call reports nothing through `hasil` — the validator refusing a field,
+      // an expired session, a dropped connection. Without this the button reads
+      // "Menyimpan…" for good.
+      setPesan('Barang gagal disimpan. Coba lagi.')
+    } finally {
+      setSibuk(false)
     }
-    await router.navigate({ to: '/admin/barang' })
   }
 
   async function hapus() {
     if (!barang) return
     setSibuk(true)
     setPesan(null)
-    const hasil = await hapusBarang({ data: { id: barang.id } })
-    setSibuk(false)
-    if (!hasil.ok) {
-      setPesan(hasil.pesan)
-      return
+    try {
+      const hasil = await hapusBarang({ data: { id: barang.id } })
+      if (!hasil.ok) {
+        setPesan(hasil.pesan)
+        return
+      }
+      await router.navigate({ to: '/admin/barang' })
+    } catch {
+      setPesan('Barang gagal dihapus. Coba lagi.')
+    } finally {
+      setSibuk(false)
     }
-    await router.navigate({ to: '/admin/barang' })
   }
 
   return (

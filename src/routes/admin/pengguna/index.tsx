@@ -26,6 +26,7 @@ import {
 import type { ArahUrut } from '../../../lib/tabel'
 import { PER_HALAMAN } from '../../../lib/tabel'
 import { useDaftar } from '../../../lib/useDaftar'
+import { PESAN_SANDI, sandiSah } from '../../../lib/validasi'
 
 interface ParamsPengguna {
   q: string
@@ -80,34 +81,46 @@ function Pengguna() {
     if (!form) return
     setSibukSimpan(true)
     setPesan(null)
-    const r = await simpanPengguna({
-      data: {
-        id: form.id,
-        nama: form.nama,
-        email: form.email,
-        peran: form.peran as (typeof PERAN)[number],
-        sandi: form.sandi || undefined,
-      },
-    })
-    setSibukSimpan(false)
-    if (!r.ok) {
-      setPesan(r.pesan)
-      return
+    try {
+      const r = await simpanPengguna({
+        data: {
+          id: form.id,
+          nama: form.nama,
+          email: form.email,
+          peran: form.peran as (typeof PERAN)[number],
+          sandi: form.sandi || undefined,
+        },
+      })
+      if (!r.ok) {
+        setPesan(r.pesan)
+        return
+      }
+      setForm(null)
+      muat(params)
+    } catch {
+      // A rejected call reports nothing through `r` — an expired session, a dropped
+      // connection. Without this the dialog's button reads "Menyimpan…" for good.
+      setPesan('Akun gagal disimpan. Coba lagi.')
+    } finally {
+      setSibukSimpan(false)
     }
-    setForm(null)
-    muat(params)
   }
 
   async function hapus(id: string) {
     setSibukSimpan(true)
     setPesan(null)
-    const r = await hapusPengguna({ data: { id } })
-    setSibukSimpan(false)
-    if (!r.ok) {
-      setPesan(r.pesan)
-      return
+    try {
+      const r = await hapusPengguna({ data: { id } })
+      if (!r.ok) {
+        setPesan(r.pesan)
+        return
+      }
+      muat(params)
+    } catch {
+      setPesan('Akun gagal dihapus. Coba lagi.')
+    } finally {
+      setSibukSimpan(false)
     }
-    muat(params)
   }
 
   const columns: ColumnDef<BarisPengguna, unknown>[] = [
@@ -248,7 +261,10 @@ function Pengguna() {
             </Field>
             <Field
               label={form.id ? 'Kata sandi baru (opsional)' : 'Kata sandi'}
-              hint="Minimal 8 karakter. Mengatur ulang sandi akan mengakhiri sesi akun tersebut."
+              hint="Mengatur ulang sandi akan mengakhiri sesi akun tersebut."
+              error={
+                form.sandi && !sandiSah(form.sandi) ? PESAN_SANDI : undefined
+              }
             >
               <input
                 type="password"
@@ -261,7 +277,12 @@ function Pengguna() {
           </div>
           <div className="flex justify-end gap-2">
             <TombolSekunder onClick={() => setForm(null)}>Batal</TombolSekunder>
-            <TombolUtama disabled={sibukSimpan} onClick={() => void simpan()}>
+            <TombolUtama
+              disabled={
+                sibukSimpan || (form.sandi.length > 0 && !sandiSah(form.sandi))
+              }
+              onClick={() => void simpan()}
+            >
               {sibukSimpan ? 'Menyimpan…' : 'Simpan'}
             </TombolUtama>
           </div>

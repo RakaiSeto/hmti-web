@@ -3,15 +3,19 @@
  * (FR18). Admin-only except the dashboard and reports, which both roles use.
  */
 import { createServerFn } from '@tanstack/react-start'
+import { getRequestHeaders } from '@tanstack/react-start/server'
+import { isAPIError } from 'better-auth/api'
 import { env } from 'cloudflare:workers'
 import { z } from 'zod'
 
 import { PERAN } from '#/db/schema'
 import { logAksi } from '#/domain/log'
+import { auth } from '#/lib/auth'
 import { geserBulan, todayWib } from '#/lib/dates'
 import { butuhAdmin, butuhSesi } from '#/lib/guards'
 import type { HasilHalaman } from '#/lib/tabel'
 import { PER_HALAMAN } from '#/lib/tabel'
+import { PESAN_SANDI, sandiSah } from '#/lib/validasi'
 import { ambilHalaman, pilihUrut, susunWhere } from './query'
 
 /* --- accounts (FR08) ------------------------------------------------------ */
@@ -131,7 +135,7 @@ export const simpanPengguna = createServerFn({ method: 'POST' })
       nama: z.string().trim().min(2, 'Nama wajib diisi').max(120),
       email: z.email('Email tidak valid'),
       peran: z.enum(PERAN),
-      sandi: z.string().min(8, 'Kata sandi minimal 8 karakter').optional(),
+      sandi: z.string().refine(sandiSah, PESAN_SANDI).optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -240,7 +244,7 @@ export const hapusPengguna = createServerFn({ method: 'POST' })
     return { ok: true as const }
   })
 
-/** An admin edits their own name (FR08). Password changes go through Better Auth. */
+/** An admin edits their own name (FR08). */
 export const ubahProfilSendiri = createServerFn({ method: 'POST' })
   .validator(z.object({ nama: z.string().trim().min(2).max(120) }))
   .handler(async ({ data }) => {
@@ -255,6 +259,55 @@ export const ubahProfilSendiri = createServerFn({ method: 'POST' })
       penggunaNama: data.nama,
       aksi: 'mengubah',
       entitas: 'pengguna',
+      entitasId: sesi.id,
+    })
+    return { ok: true as const }
+  })
+
+/**
+ * Change your own password (FR08).
+ *
+ * A server function rather than calling `authClient.changePassword` from the page, so the
+ * policy is the one in `lib/validasi.ts` and not a second, weaker rule. Better Auth's own
+ * config carries only a length range — it has no notion of character classes — so wrapping
+ * its endpoint is what makes the profile path and the admin's user form agree.
+ *
+ * The current password is still checked by Better Auth, which is called with the caller's
+ * own headers so it resolves the session itself; this function does not touch the hash.
+ */
+export const gantiSandi = createServerFn({ method: 'POST' })
+  .validator(
+    z.object({
+      lama: z.string().min(1, 'Kata sandi saat ini wajib diisi'),
+      baru: z.string().refine(sandiSah, PESAN_SANDI),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const sesi = await butuhSesi()
+    try {
+      await auth.api.changePassword({
+        body: { currentPassword: data.lama, newPassword: data.baru },
+        headers: getRequestHeaders(),
+      })
+    } catch (err) {
+      // `INVALID_PASSWORD` is the endpoint's one expected refusal. Reporting anything else
+      // as a wrong password is how a misconfiguration stays invisible — the login page
+      // makes the same distinction, for the same reason.
+      const salahSandi =
+        isAPIError(err) && err.body?.code === 'INVALID_PASSWORD'
+      return {
+        ok: false as const,
+        pesan: salahSandi
+          ? 'Kata sandi saat ini salah.'
+          : 'Kata sandi gagal diubah. Coba lagi.',
+      }
+    }
+
+    await logAksi({
+      penggunaId: sesi.id,
+      penggunaNama: sesi.nama,
+      aksi: 'mengubah',
+      entitas: 'sesi',
       entitasId: sesi.id,
     })
     return { ok: true as const }

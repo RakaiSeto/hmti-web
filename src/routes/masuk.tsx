@@ -40,22 +40,30 @@ function Masuk() {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const { error: err } = await authClient.signIn.email({ email, password })
-    setLoading(false)
-    if (err) {
-      // 401 is the credentials case, and it is deliberately one message for both "no such
-      // account" and "wrong password": distinguishing them tells an attacker which emails
-      // are real. Anything else is a fault on our side — a 403 invalid origin, a 5xx — and
-      // dressing that up as a wrong password is how a misconfigured auth origin stayed
-      // invisible until someone reported "cannot log in".
+    try {
+      const { error: err } = await authClient.signIn.email({ email, password })
+      if (err) {
+        // 401 is the credentials case, and it is deliberately one message for both "no such
+        // account" and "wrong password": distinguishing them tells an attacker which emails
+        // are real. Anything else is a fault on our side — a 403 invalid origin, a 5xx — and
+        // dressing that up as a wrong password is how a misconfigured auth origin stayed
+        // invisible until someone reported "cannot log in".
+        setError(
+          err.status === 401
+            ? 'Email atau kata sandi salah.'
+            : 'Terjadi kesalahan pada server. Coba lagi, atau hubungi admin bila berlanjut.',
+        )
+        return
+      }
+      await navigate({ to: '/admin/dasbor' })
+    } catch {
+      // The client returns its failures in `error`; a *thrown* one is the network itself.
       setError(
-        err.status === 401
-          ? 'Email atau kata sandi salah.'
-          : 'Terjadi kesalahan pada server. Coba lagi, atau hubungi admin bila berlanjut.',
+        'Tidak dapat menghubungi server. Periksa koneksi Anda, lalu coba lagi.',
       )
-      return
+    } finally {
+      setLoading(false)
     }
-    await navigate({ to: '/admin/dasbor' })
   }
 
   return (

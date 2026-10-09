@@ -535,6 +535,32 @@ what hid the `unggahFoto` bug below.
 upload had never worked**; with no busy UI, nothing said so. It takes FormData now, and the
 photo is written.
 
+### D22. Password policy, enforced on both paths — **settled**
+
+Owner: *"tighten it, no space allowed, minimum 1 lowercase, uppercase, and number"*. A
+password is valid when it is **at least 8 characters, contains no whitespace, and holds at
+least one lowercase letter, one uppercase letter and one digit**. Deliberately **no symbol
+requirement**: the length floor and the three classes are what was asked for, and every rule
+past that is another reason a legitimate password gets refused. The rule lives once, in
+`lib/validasi.ts` (`PANJANG_SANDI`, `PESAN_SANDI`, `sandiSah`), and the form and the server
+both read it — the field shows `PESAN_SANDI` inline and disables its submit while the value
+is bad, and the server function refuses it with the same sentence.
+
+**Two paths, one rule.** The admin's user form (`simpanPengguna`) already validated on the
+server. The profile page did not: it called `authClient.changePassword` straight, so its only
+rule was Better Auth's own `minPasswordLength`. Better Auth's config carries a length range
+and has no notion of character classes, so no config value could make the two agree. The
+profile path now calls a `gantiSandi` server function that checks `sandiSah` first and then
+delegates to `auth.api.changePassword` **with the caller's own headers** — Better Auth still
+verifies the current password, and this code never touches the hash. `INVALID_PASSWORD` is
+reported as *"Kata sandi saat ini salah."*; anything else is reported as a fault, matching the
+login page's distinction.
+
+**Bootstrap credentials are the one exception.** `tools/seed.ts` inserts the demo accounts'
+hashes directly (`admin123` / `pj123456`), so they do not satisfy the rule. That is left
+alone on purpose: the policy guards *setting* a password through the app, not logging in, and
+changing the demo credentials would invalidate a login the owner and their team already use.
+
 ---
 
 ## 6. Known design flaws — recorded, deferred

@@ -319,6 +319,23 @@ export const simpanBarang = createServerFn({ method: 'POST' })
     async ({ data }): Promise<{ ok: true } | { ok: false; pesan: string }> => {
       const sesi = await butuhAdmin()
       const now = Math.floor(Date.now() / 1000)
+
+      // The category is a foreign key, so a stale one (deleted in another tab while this
+      // form sat open) would fail the write with a constraint error and no explanation.
+      // One primary-key lookup turns that into a sentence the operator can act on.
+      const kategori = await env.DB.prepare(
+        `SELECT id FROM kategori WHERE id = ?`,
+      )
+        .bind(data.kategoriId)
+        .first<{ id: string }>()
+      if (!kategori) {
+        return {
+          ok: false as const,
+          pesan:
+            'Kategori yang dipilih sudah tidak ada. Muat ulang halaman ini, lalu pilih kategori lain.',
+        }
+      }
+
       if (data.id) {
         await env.DB.prepare(
           `UPDATE barang SET nama = ?, kategori_id = ?, jumlah = ?, kondisi = ?,

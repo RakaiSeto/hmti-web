@@ -68,29 +68,39 @@ function Kategori() {
   async function simpan() {
     setSibukSimpan(true)
     setPesan(null)
-    const r = await simpanKategori({
-      data: { id: editId ?? undefined, nama },
-    })
-    setSibukSimpan(false)
-    if (!r.ok) {
-      setPesan(r.pesan)
-      return
+    try {
+      const r = await simpanKategori({
+        data: { id: editId ?? undefined, nama },
+      })
+      if (!r.ok) {
+        setPesan(r.pesan)
+        return
+      }
+      setNama('')
+      setEditId(null)
+      muat(params)
+    } catch {
+      setPesan('Kategori gagal disimpan. Coba lagi.')
+    } finally {
+      setSibukSimpan(false)
     }
-    setNama('')
-    setEditId(null)
-    muat(params)
   }
 
   async function hapus(id: string) {
     setSibukSimpan(true)
     setPesan(null)
-    const r = await hapusKategori({ data: { id } })
-    setSibukSimpan(false)
-    if (!r.ok) {
-      setPesan(r.pesan)
-      return
+    try {
+      const r = await hapusKategori({ data: { id } })
+      if (!r.ok) {
+        setPesan(r.pesan)
+        return
+      }
+      muat(params)
+    } catch {
+      setPesan('Kategori gagal dihapus. Coba lagi.')
+    } finally {
+      setSibukSimpan(false)
     }
-    muat(params)
   }
 
   const columns: ColumnDef<BarisKategori, unknown>[] = [
