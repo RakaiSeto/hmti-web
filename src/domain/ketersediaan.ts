@@ -9,6 +9,7 @@
  * The overlap rule itself is documented in `availability.ts`, next to the queries that
  * implement it. This file holds the pieces that are pure functions of their arguments.
  */
+import { tambahHari } from '#/lib/dates'
 
 /** Statuses that hold stock. One list, cited by the queries and the tests. */
 export const STATUS_MENAHAN = ['Disetujui', 'Dipinjam'] as const
@@ -40,6 +41,27 @@ export function statusDari(
   if (tersedia <= 0) return 'Habis'
   if (jumlahTotal > 0 && tersedia < jumlahTotal) return 'Terbatas'
   return 'Tersedia'
+}
+
+/**
+ * The window to check when a borrower has only picked a checkout day.
+ *
+ * A request's checkout day is inclusive and its return day exclusive (D9), so the
+ * shortest request is one day: `[pinjam, pinjam + 1)`. The form shows availability as
+ * soon as a checkout date is chosen, so until a return date is picked — or whenever the
+ * one on screen is not after the checkout day — it checks that single day instead of
+ * leaving the picker blank.
+ *
+ * Both inputs are `YYYY-MM-DD`; `tglKembali` may be empty, which is the "not chosen yet"
+ * case. The result is always a valid non-empty range.
+ */
+export function jendelaKetersediaan(
+  tglPinjam: string,
+  tglKembali: string,
+): { mulai: string; selesai: string } {
+  const selesai =
+    tglKembali && tglKembali > tglPinjam ? tglKembali : tambahHari(tglPinjam, 1)
+  return { mulai: tglPinjam, selesai }
 }
 
 export interface BarisPermintaan {

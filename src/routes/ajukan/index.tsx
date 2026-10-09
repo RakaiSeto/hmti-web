@@ -1,8 +1,8 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
-import { statusDari } from '../../domain/ketersediaan'
-import { formatTanggal, todayWib } from '../../lib/dates'
+import { statusDari, jendelaKetersediaan } from '../../domain/ketersediaan'
+import { formatTanggal, tambahHari, todayWib } from '../../lib/dates'
 import { kontakSah } from '../../lib/validasi'
 import {
   daftarBarangUntukForm,
@@ -55,8 +55,11 @@ function FormPeminjaman() {
   const [penanggungJawab, setPenanggungJawab] = useState('')
   const [kontak, setKontak] = useState('')
   const [keperluan, setKeperluan] = useState('')
-  const [tglPinjam, setTglPinjam] = useState(todayWib())
-  const [tglKembali, setTglKembali] = useState('')
+  const hariIni = todayWib()
+  const [tglPinjam, setTglPinjam] = useState(hariIni)
+  // Pre-filled to the day after the checkout day — the shortest request (D9) — so
+  // availability shows on load without the borrower having to pick a return date first.
+  const [tglKembali, setTglKembali] = useState(tambahHari(hariIni, 1))
   const [cari, setCari] = useState('')
   const [filterKategori, setFilterKategori] = useState('')
   const [baris, setBaris] = useState<Baris[]>(
@@ -69,23 +72,31 @@ function FormPeminjaman() {
   const [sibuk, setSibuk] = useState(false)
   const [kode, setKode] = useState<string | null>(null)
 
-  // Availability for the chosen window, recomputed whenever it changes. This goes
-  // through a server function: reading the D1 binding from component code would pull a
-  // Worker-only module into the browser bundle.
+  // Availability for the chosen window, recomputed whenever it changes. The window is
+  // derived from the checkout date alone (`jendelaKetersediaan`), so picking a checkout
+  // date is enough to see what is free — the borrower does not have to pick a return
+  // date first. This goes through a server function: reading the D1 binding from
+  // component code would pull a Worker-only module into the browser bundle.
   const [tersediaMap, setTersediaMap] = useState<Record<string, number>>({})
+  const { mulai, selesai } = tglPinjam
+    ? jendelaKetersediaan(tglPinjam, tglKembali)
+    : { mulai: '', selesai: '' }
   useEffect(() => {
-    if (!tglKembali || tglKembali <= tglPinjam) {
+    if (!mulai || !selesai) {
       setTersediaMap({})
       return
     }
     // An AbortController rather than a boolean flag: the flag is only ever set in the
     // cleanup, so a plain `let` reads as a constant to the type checker and to a reader.
     const ctrl = new AbortController()
+    // Clear the previous window's numbers so the picker reads "memeriksa" rather than a
+    // stale free count while the new answer is in flight.
+    setTersediaMap({})
     void (async () => {
       const hasil = await cekKetersediaan({
         data: {
-          mulai: tglPinjam,
-          selesai: tglKembali,
+          mulai,
+          selesai,
           barangIds: barang.map((b) => b.id),
         },
       })
@@ -93,7 +104,7 @@ function FormPeminjaman() {
       if (!ctrl.signal.aborted) setTersediaMap(hasil)
     })()
     return () => ctrl.abort()
-  }, [tglPinjam, tglKembali, barang])
+  }, [mulai, selesai, barang])
 
   const terlihat = barang.filter((b) => {
     if (filterKategori && b.kategoriId !== filterKategori) return false
@@ -111,6 +122,16 @@ function FormPeminjaman() {
         ? s
         : [...s, { barangId: id, jumlah: 1 }],
     )
+  }
+
+  /**
+   * Picking a checkout date also keeps the return date valid: an empty one, or one that
+   * is no longer after the new checkout date, snaps to the next day — the shortest
+   * request (D9). A return date the borrower chose deliberately is left alone.
+   */
+  function pilihTglPinjam(v: string) {
+    setTglPinjam(v)
+    if (v && (!tglKembali || tglKembali <= v)) setTglKembali(tambahHari(v, 1))
   }
 
   async function kirim() {
@@ -274,16 +295,16 @@ function FormPeminjaman() {
                   <input
                     required
                     type="date"
-                    min={todayWib()}
+                    min={hariIni}
                     className={inputCls}
                     value={tglPinjam}
-                    onChange={(e) => setTglPinjam(e.target.value)}
+                    onChange={(e) => pilihTglPinjam(e.target.value)}
                   />
                 </Field>
                 <Field
                   label="Tanggal kembali"
                   wajib
-                  hint="Barang dapat dipinjam kembali oleh organisasi lain pada tanggal ini."
+                  hint="Otomatis sehari setelah tanggal pinjam. Barang dapat dipinjam kembali oleh organisasi lain pada tanggal ini."
                 >
                   <input
                     required
@@ -341,7 +362,8 @@ function FormPeminjaman() {
                   their 12px gaps. The last thing in view is never half a card. */}
               <div className="grid max-h-120 grid-cols-1 gap-3 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
                 {terlihat.map((b) => {
-                  const bebas = tersediaMap[b.id] ?? b.jumlah
+                  const diketahui = b.id in tersediaMap
+                  const bebas = tersediaMap[b.id] ?? 0
                   const sudah = baris.some((x) => x.barangId === b.id)
                   return (
                     <div
@@ -352,17 +374,26 @@ function FormPeminjaman() {
                         {b.nama}
                       </p>
                       <p className="line-clamp-2 min-h-10 text-xs text-text-soft">
-                        {b.kategoriNama} · {bebas} dari {b.jumlah} unit bebas
+                        {b.kategoriNama} ·{' '}
+                        {diketahui
+                          ? `${bebas} dari ${b.jumlah} unit bebas`
+                          : 'memeriksa ketersediaan…'}
                       </p>
                       {/* `mt-auto` with the grid's default stretch: the badge and button
                           sit on the card's floor even when a name takes two lines. */}
                       <div className="mt-auto flex items-center justify-between gap-2">
-                        <AvailabilityBadge
-                          status={statusDari(bebas, b.jumlah)}
-                        />
+                        {diketahui ? (
+                          <AvailabilityBadge
+                            status={statusDari(bebas, b.jumlah)}
+                          />
+                        ) : (
+                          <span className="text-xs text-text-soft">
+                            Memeriksa…
+                          </span>
+                        )}
                         <button
                           type="button"
-                          disabled={sudah || bebas <= 0}
+                          disabled={sudah || !diketahui || bebas <= 0}
                           onClick={() => tambah(b.id)}
                           className="rounded-md border border-neutral-soft px-3 py-1 text-sm font-semibold disabled:opacity-40"
                         >
@@ -464,17 +495,11 @@ function FormPeminjaman() {
                 </ul>
               )}
 
-              {!tglKembali || tglKembali <= tglPinjam ? (
-                <p className="rounded-md bg-warning-container px-3 py-2 text-xs font-semibold text-warning">
-                  Pilih tanggal kembali untuk melihat ketersediaan pada rentang
-                  tersebut.
-                </p>
-              ) : (
-                <p className="text-xs text-text-soft">
-                  Ketersediaan dihitung untuk {formatTanggal(tglPinjam)} →{' '}
-                  {formatTanggal(tglKembali)}.
-                </p>
-              )}
+              <p className="text-xs text-text-soft">
+                {tglKembali && tglKembali > tglPinjam
+                  ? `Ketersediaan dihitung untuk ${formatTanggal(mulai)} → ${formatTanggal(selesai)}.`
+                  : `Menampilkan ketersediaan satu hari (${formatTanggal(mulai)}); pilih tanggal kembali untuk rentang lebih panjang.`}
+              </p>
 
               <TombolUtama
                 disabled={

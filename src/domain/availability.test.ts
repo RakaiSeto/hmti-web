@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { guardKetersediaan, statusDari } from './ketersediaan'
+import {
+  guardKetersediaan,
+  jendelaKetersediaan,
+  statusDari,
+} from './ketersediaan'
 
 /**
  * These tests pin the D9 boundary rule and the shape of the generated guard SQL. They do
@@ -26,6 +30,36 @@ describe('statusDari — the availability badge', () => {
 
   it('treats a zero-stock item as Habis, not Tersedia', () => {
     expect(statusDari(0, 0)).toBe('Habis')
+  })
+})
+
+describe('jendelaKetersediaan — the window the form checks', () => {
+  it('uses the chosen range when the return date is after the checkout date', () => {
+    expect(jendelaKetersediaan('2026-10-01', '2026-10-05')).toEqual({
+      mulai: '2026-10-01',
+      selesai: '2026-10-05',
+    })
+  })
+
+  it('falls back to the single checkout day when no return date is chosen', () => {
+    // The form shows availability as soon as a checkout date is picked, so an empty
+    // return date has to resolve to a real one-day window rather than an empty range.
+    expect(jendelaKetersediaan('2026-10-01', '')).toEqual({
+      mulai: '2026-10-01',
+      selesai: '2026-10-02',
+    })
+  })
+
+  it('snaps an equal or earlier return date to the next day', () => {
+    // `selesai <= mulai` is not a request (D9), so both degenerate cases use one day.
+    expect(jendelaKetersediaan('2026-10-01', '2026-10-01')).toEqual({
+      mulai: '2026-10-01',
+      selesai: '2026-10-02',
+    })
+    expect(jendelaKetersediaan('2026-10-01', '2026-09-30')).toEqual({
+      mulai: '2026-10-01',
+      selesai: '2026-10-02',
+    })
   })
 })
 
