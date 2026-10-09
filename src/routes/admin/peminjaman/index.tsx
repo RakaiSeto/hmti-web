@@ -114,7 +114,7 @@ function PeminjamanAktif() {
     },
     {
       id: 'aksi',
-      header: '',
+      header: 'AKSI',
       enableSorting: false,
       cell: ({ row }) => (
         <span className="flex items-center gap-2 whitespace-nowrap">

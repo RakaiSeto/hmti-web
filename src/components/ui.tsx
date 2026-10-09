@@ -216,20 +216,30 @@ export function DataTable({
 }
 
 /**
- * The height every data row in the app shares — list rows in `TabelData` and detail rows
- * in `BarisTabel` both carry it on their cells.
+ * The minimum height every data row in the app shares — list rows in `TabelData` and detail
+ * rows in `BarisTabel` both carry it on their cells.
  *
- * It is fixed rather than content-driven: without it a table's rhythm changes with what
- * happens to be in the columns (a one-line row here, a name-over-subtitle row there), and
- * single-line tables come out visibly shorter than the rest. Every cell in a row is
- * `text-sm` (14px/20px), so the tallest cell is a primary line over a secondary one — 40px
- * — and `h-17` leaves 4px of slack around it. The cells refuse to wrap, so a long value
- * can never stretch one row past its neighbours.
+ * It is a floor rather than a fixed height: a one-line row lands on 68px so a table's
+ * rhythm does not change with what happens to be in the columns, but a cell whose value
+ * wraps grows the row past it. Every cell is `text-sm` (14px/20px), so the common case — a
+ * primary line over a secondary one — is 40px, and `h-17` leaves 4px of slack around it.
  */
 export const BARIS_TABEL = 'h-17'
 
-/** A body cell: the row height, no wrapping, and the shared padding. */
-export const SEL_TABEL = `px-4 py-3 align-middle text-text whitespace-nowrap ${BARIS_TABEL}`
+/**
+ * A body cell: the minimum row height and the shared padding.
+ *
+ * Cells wrap at every width, which is what keeps a long value from stretching its column
+ * across the table. The default is `overflow-wrap: break-word` — text wraps at word
+ * boundaries, and a word too long for the column is broken rather than pushing it wider.
+ *
+ * Below `md` it upgrades to `anywhere`, which also shrinks the cell's min-content. That is
+ * what the detail pages' narrow tables need: a long unbreakable value (an email, an id)
+ * wraps there instead of forcing the table to scroll. It is deliberately not the desktop
+ * rule — with `anywhere` every column can shrink to one character, so the table layout
+ * starves short columns and a status badge ends up split mid-word.
+ */
+export const SEL_TABEL = `px-4 py-3 align-middle text-text break-words max-md:wrap-anywhere ${BARIS_TABEL}`
 
 export function BarisTabel({ children }: { children: React.ReactNode }) {
   return (

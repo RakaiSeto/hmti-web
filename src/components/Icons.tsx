@@ -480,6 +480,27 @@ export function IconProfil({ size = 16, className }: IconProps) {
   )
 }
 
+/**
+ * The mobile topbar's drawer toggle: three rules, the standard hamburger.
+ *
+ * Only ever rendered below `lg`, where the sidebar is off-canvas and needs an opener.
+ */
+export function IconMenu({ size = 18, className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M2.4 4.2 H13.6" {...outline} />
+      <path d="M2.4 8 H13.6" {...outline} />
+      <path d="M2.4 11.8 H13.6" {...outline} />
+    </svg>
+  )
+}
+
 /** The account menu's "Keluar" row. */
 export function IconLogout({ size = 16, className }: IconProps) {
   return (

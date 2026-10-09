@@ -25,6 +25,77 @@ interface BarisKembali {
   catatan: string
 }
 
+/** The item fields the return form reads — a subset of what the loader hands over. */
+interface BarangKembali {
+  barang_id: string
+  nama: string
+  jumlah: number
+}
+
+interface BagianBaris {
+  barang: BarangKembali
+  nilai: BarisKembali
+  onUbah: (patch: Partial<BarisKembali>) => void
+}
+
+/**
+ * The three per-line controls, shared by the desktop table and the mobile cards so the
+ * two layouts cannot drift. `w-full md:…` is what makes each one fill its card below `md`
+ * and keep its table-sized width above.
+ */
+function InputJumlah({ barang, nilai, onUbah }: BagianBaris) {
+  return (
+    <input
+      type="number"
+      min={1}
+      max={barang.jumlah}
+      aria-label={`Jumlah kembali ${barang.nama}`}
+      className={`${inputCls} w-full md:w-24`}
+      value={nilai.jumlah}
+      onChange={(e) =>
+        onUbah({
+          jumlah: Math.min(
+            barang.jumlah,
+            Math.max(1, Number(e.target.value) || 1),
+          ),
+        })
+      }
+    />
+  )
+}
+
+function PilihKondisi({ barang, nilai, onUbah }: BagianBaris) {
+  return (
+    <select
+      aria-label={`Kondisi ${barang.nama}`}
+      className={`${inputCls} w-full md:w-auto`}
+      value={nilai.kondisi}
+      onChange={(e) =>
+        onUbah({ kondisi: e.target.value as (typeof KONDISI_KEMBALI)[number] })
+      }
+    >
+      {KONDISI_KEMBALI.map((k) => (
+        <option key={k} value={k}>
+          {k}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function InputCatatan({ barang, nilai, onUbah }: BagianBaris) {
+  return (
+    <input
+      aria-label={`Catatan ${barang.nama}`}
+      maxLength={300}
+      className={`${inputCls} w-full`}
+      placeholder="—"
+      value={nilai.catatan}
+      onChange={(e) => onUbah({ catatan: e.target.value })}
+    />
+  )
+}
+
 export const Route = createFileRoute('/admin/pengembalian/$kode')({
   loader: ({ params }) => detailPengajuan({ data: { kode: params.kode } }),
   component: Pengembalian,
@@ -52,6 +123,10 @@ function Pengembalian() {
       ]),
     ),
   )
+
+  /** Patch one line's state; both the table and the cards go through here. */
+  const ubah = (id: string, patch: Partial<BarisKembali>) =>
+    setBaris((s) => ({ ...s, [id]: { ...s[id], ...patch } }))
 
   if (!p) {
     return (
@@ -159,81 +234,78 @@ function Pengembalian() {
         <h2 className="text-md font-semibold text-neutral-intense">
           Kondisi barang dikembalikan
         </h2>
-        <DataTable head={['Barang', 'Jumlah kembali', 'Kondisi', 'Catatan']}>
+        {/* Below `md` this is one card per line: four columns of form controls do not fit a
+            phone, and a form you have to scroll sideways is the worst place for it. The
+            table stays for `md` and up, sharing the same controls. */}
+        <div className="flex flex-col divide-y divide-neutral-soft overflow-hidden rounded-xl bg-surface shadow-card md:hidden">
           {p.baris.map((b) => (
-            <BarisTabel key={b.barang_id}>
-              <Sel className="font-semibold">
+            <div key={b.barang_id} className="flex flex-col gap-3 p-4">
+              <p className="min-w-0 text-sm font-semibold text-neutral-intense">
                 {b.nama}
                 <span className="block text-sm font-normal text-text-soft">
                   dipinjam ×{b.jumlah}
                 </span>
-              </Sel>
-              <Sel>
-                <input
-                  type="number"
-                  min={1}
-                  max={b.jumlah}
-                  aria-label={`Jumlah kembali ${b.nama}`}
-                  className={`${inputCls} w-24`}
-                  value={baris[b.barang_id].jumlah}
-                  onChange={(e) =>
-                    setBaris((s) => ({
-                      ...s,
-                      [b.barang_id]: {
-                        ...s[b.barang_id],
-                        jumlah: Math.min(
-                          b.jumlah,
-                          Math.max(1, Number(e.target.value) || 1),
-                        ),
-                      },
-                    }))
-                  }
+              </p>
+              <Field label="Jumlah kembali">
+                <InputJumlah
+                  barang={b}
+                  nilai={baris[b.barang_id]}
+                  onUbah={(patch) => ubah(b.barang_id, patch)}
                 />
-              </Sel>
-              <Sel>
-                <select
-                  aria-label={`Kondisi ${b.nama}`}
-                  className={inputCls}
-                  value={baris[b.barang_id].kondisi}
-                  onChange={(e) =>
-                    setBaris((s) => ({
-                      ...s,
-                      [b.barang_id]: {
-                        ...s[b.barang_id],
-                        kondisi: e.target
-                          .value as (typeof KONDISI_KEMBALI)[number],
-                      },
-                    }))
-                  }
-                >
-                  {KONDISI_KEMBALI.map((k) => (
-                    <option key={k} value={k}>
-                      {k}
-                    </option>
-                  ))}
-                </select>
-              </Sel>
-              <Sel>
-                <input
-                  aria-label={`Catatan ${b.nama}`}
-                  maxLength={300}
-                  className={`${inputCls} w-full`}
-                  placeholder="—"
-                  value={baris[b.barang_id].catatan}
-                  onChange={(e) =>
-                    setBaris((s) => ({
-                      ...s,
-                      [b.barang_id]: {
-                        ...s[b.barang_id],
-                        catatan: e.target.value,
-                      },
-                    }))
-                  }
+              </Field>
+              <Field label="Kondisi">
+                <PilihKondisi
+                  barang={b}
+                  nilai={baris[b.barang_id]}
+                  onUbah={(patch) => ubah(b.barang_id, patch)}
                 />
-              </Sel>
-            </BarisTabel>
+              </Field>
+              <Field label="Catatan">
+                <InputCatatan
+                  barang={b}
+                  nilai={baris[b.barang_id]}
+                  onUbah={(patch) => ubah(b.barang_id, patch)}
+                />
+              </Field>
+            </div>
           ))}
-        </DataTable>
+        </div>
+
+        <div className="hidden md:block">
+          <DataTable head={['Barang', 'Jumlah kembali', 'Kondisi', 'Catatan']}>
+            {p.baris.map((b) => (
+              <BarisTabel key={b.barang_id}>
+                <Sel className="font-semibold">
+                  {b.nama}
+                  <span className="block text-sm font-normal text-text-soft">
+                    dipinjam ×{b.jumlah}
+                  </span>
+                </Sel>
+                <Sel>
+                  <InputJumlah
+                    barang={b}
+                    nilai={baris[b.barang_id]}
+                    onUbah={(patch) => ubah(b.barang_id, patch)}
+                  />
+                </Sel>
+                <Sel>
+                  <PilihKondisi
+                    barang={b}
+                    nilai={baris[b.barang_id]}
+                    onUbah={(patch) => ubah(b.barang_id, patch)}
+                  />
+                </Sel>
+                <Sel>
+                  <InputCatatan
+                    barang={b}
+                    nilai={baris[b.barang_id]}
+                    onUbah={(patch) => ubah(b.barang_id, patch)}
+                  />
+                </Sel>
+              </BarisTabel>
+            ))}
+          </DataTable>
+        </div>
       </div>
 
       <Card className="flex flex-col gap-3">
@@ -250,6 +322,7 @@ function Pengembalian() {
               setBukti(f)
               setPesan(null)
             }}
+            kamera
           />
         </Field>
       </Card>

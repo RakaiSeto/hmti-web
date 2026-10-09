@@ -5,7 +5,7 @@ import type { Peran } from '#/db/schema'
 import { authClient } from '#/lib/auth-client'
 
 import { BrandLockup } from '../BrandLockup'
-import { IconChevronDown, IconLogout, IconProfil } from '../Icons'
+import { IconChevronDown, IconLogout, IconMenu, IconProfil } from '../Icons'
 import { LABEL_PERAN, navUntuk } from './nav'
 
 /**
@@ -24,6 +24,12 @@ import { LABEL_PERAN, navUntuk } from './nav'
  * Profil and Keluar are not rows: they live in the topbar's account menu, which is why
  * the shell takes `nama`. The sidebar's own scrolling is separate from the content's, so
  * a long page does not carry the nav away.
+ *
+ * Below `lg` the sidebar is off-canvas: a 252px column leaves too little for the content
+ * on a phone, and the tables need the width. The topbar then carries a hamburger that
+ * slides it in over a backdrop. It is `fixed` there (out of flow, so `main` takes the full
+ * width) and `lg:sticky` above (in flow, pinned). It closes on a nav tap, a backdrop tap,
+ * Escape, and any route change; while it is open the page behind it does not scroll.
  */
 export function AdminShell({
   peran,
@@ -40,10 +46,35 @@ export function AdminShell({
   const nav = navUntuk(peran, { permintaanBaru: jumlahPermintaanBaru })
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const [menuTerbuka, setMenuTerbuka] = useState(false)
+  const [navTerbuka, setNavTerbuka] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const isActive = (to: string) =>
     pathname === to || (to !== '/admin/dasbor' && pathname.startsWith(`${to}/`))
+
+  // A tap on a nav row navigates, and the drawer has done its job — it must not stay open
+  // over the page it just opened. Watching the pathname also covers the browser's back
+  // button, which a per-link click handler would miss.
+  useEffect(() => {
+    setNavTerbuka(false)
+  }, [pathname])
+
+  // Escape closes the drawer, and the page behind it stops scrolling while it is open.
+  // Both are restored on unmount, so a route change mid-drawer cannot leave the body
+  // locked.
+  useEffect(() => {
+    if (!navTerbuka) return
+    const tombolEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setNavTerbuka(false)
+    }
+    const sebelumnya = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', tombolEsc)
+    return () => {
+      document.body.style.overflow = sebelumnya
+      document.removeEventListener('keydown', tombolEsc)
+    }
+  }, [navTerbuka])
 
   // The account menu closes on an outside click and on Escape, the two ways a menu is
   // expected to dismiss. It is not a `<details>`: that element cannot close on an outside
@@ -67,11 +98,28 @@ export function AdminShell({
   return (
     <div className="flex min-h-dvh bg-surface-container">
       {/* --- sidebar ------------------------------------------------------- */}
-      {/* `sticky top-0 h-dvh`: the sidebar is shorter than the content column, so without
+      {/* The backdrop only exists while the drawer is open, and only below `lg`; above it
+          the sidebar is in flow and there is nothing to dismiss. `aria-hidden` because
+          the dismiss affordance is the button in the topbar, not this sheet. */}
+      {navTerbuka ? (
+        <div
+          aria-hidden="true"
+          onClick={() => setNavTerbuka(false)}
+          className="fixed inset-0 z-30 bg-ink/60 lg:hidden"
+        />
+      ) : null}
+
+      {/* `lg:sticky lg:top-0`: the sidebar is shorter than the content column, so without
           this a long page carries the nav off-screen. It has no horizontal padding for the
           strip's sake — the rows carry their own `mx-3`, which lets the active row's strip
-          reach the sidebar's left edge without the nav's scroll container clipping it. */}
-      <aside className="sticky top-0 flex h-dvh w-63 shrink-0 flex-col gap-1 bg-ink py-6">
+          reach the sidebar's left edge without the nav's scroll container clipping it.
+          Below `lg` it is `fixed` and off-screen until the hamburger slides it in; `fixed`
+          takes it out of flow, so the content column gets the whole width. */}
+      <aside
+        className={`fixed top-0 left-0 z-40 flex h-dvh w-63 shrink-0 flex-col gap-1 bg-ink py-6 transition-transform duration-200 lg:sticky lg:top-0 lg:z-auto lg:translate-x-0 ${
+          navTerbuka ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div className="px-5 pb-4">
           <BrandLockup tone="dark" />
         </div>
@@ -129,11 +177,22 @@ export function AdminShell({
 
       {/* --- main ---------------------------------------------------------- */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-15.5 shrink-0 items-center justify-end gap-2 border-b border-neutral-soft bg-surface px-8">
+        <header className="sticky top-0 z-10 flex h-15.5 shrink-0 items-center gap-2 border-b border-neutral-soft bg-surface px-4 md:px-8">
+          {/* The drawer's only opener. Hidden once the sidebar is back in flow at `lg`. */}
+          <button
+            type="button"
+            aria-label="Buka menu navigasi"
+            aria-expanded={navTerbuka}
+            onClick={() => setNavTerbuka(true)}
+            className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-neutral-intense transition-colors hover:bg-neutral-subtle lg:hidden"
+          >
+            <IconMenu />
+          </button>
+
           {/* No notification affordance here: the dashboard's "Perlu tindakan" card is the
               one place that lists what needs attention, and the sidebar already counts new
               requests on the Permintaan row. */}
-          <div className="relative" ref={menuRef}>
+          <div className="relative ml-auto" ref={menuRef}>
             <button
               type="button"
               aria-haspopup="menu"
@@ -191,7 +250,9 @@ export function AdminShell({
             ) : null}
           </div>
         </header>
-        <main className="flex-1 px-8 py-6">{children ?? <Outlet />}</main>
+        <main className="flex-1 px-4 py-6 md:px-8">
+          {children ?? <Outlet />}
+        </main>
       </div>
     </div>
   )

@@ -131,7 +131,7 @@ function DetailPermintaan() {
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         {/* --- left column ------------------------------------------------ */}
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <Card className="flex flex-col gap-3">
             <h2 className="text-md font-semibold text-neutral-intense">
               Organisasi
@@ -255,7 +255,7 @@ function DetailPermintaan() {
         </div>
 
         {/* --- right column ----------------------------------------------- */}
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <Card className="flex flex-col gap-3">
             <h2 className="text-md font-semibold text-neutral-intense">
               Surat peminjaman

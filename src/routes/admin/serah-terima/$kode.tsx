@@ -202,6 +202,7 @@ function SerahTerima() {
               setPesan(null)
             }}
             sibuk={sibuk}
+            kamera
           />
         </Field>
       </Card>

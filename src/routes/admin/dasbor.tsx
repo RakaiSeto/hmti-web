@@ -182,8 +182,10 @@ function Dasbor() {
                         {rincian(t)}
                       </span>
                     </span>
-                    {/* The row navigates, it does not act: the verb lives on the page it opens. */}
-                    <span className="shrink-0 text-xs font-semibold text-text-soft">
+                    {/* The row navigates, it does not act: the verb lives on the page it opens.
+                        Hidden on the narrowest screens, where the row is already the target and
+                        the hint only squeezes the organisation name. */}
+                    <span className="hidden shrink-0 text-xs font-semibold text-text-soft sm:inline">
                       Lihat Detail →
                     </span>
                   </Link>

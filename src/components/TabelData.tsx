@@ -10,6 +10,12 @@
  * the middle, and the pager — page size, a page-number field, prev/next — is the card's
  * footer.
  *
+ * Below `md` the table is replaced by one card per row. The tables need 700px+ of column
+ * width and a phone has ~360, so rather than scroll a table sideways each row becomes a
+ * stack: the first cell is the card's heading and every other cell is a label/value line
+ * using its column header — the action column included, under its `AKSI` header. The same
+ * `ColumnDef`s drive both, so a column added once shows up in both layouts.
+ *
  * A column's `id` is its server sort key (e.g. `id: 'nama'` for `?sort=nama`). Columns
  * without an accessor are display-only and render no sort control — TanStack's
  * `getCanSort` requires an `accessorFn`, so a sortable column must carry one even though
@@ -147,93 +153,149 @@ export function TabelData<T>({
         </div>
       ) : (
         <div
-          className={`overflow-x-auto transition-opacity ${sibuk ? 'opacity-50' : ''}`}
+          className={`transition-opacity ${sibuk ? 'opacity-50' : ''}`}
           aria-busy={sibuk}
         >
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              {table.getHeaderGroups().map((grup) => (
-                <tr key={grup.id} className="border-b border-neutral-soft">
-                  {grup.headers.map((header) => {
-                    const bisaUrut = header.column.getCanSort()
-                    const arah = header.column.getIsSorted()
-                    return (
-                      <th
-                        key={header.id}
-                        aria-sort={
-                          arah === 'desc'
-                            ? 'descending'
-                            : arah === 'asc'
-                              ? 'ascending'
-                              : 'none'
-                        }
-                        className="bg-neutral-subtle px-4 py-3 text-left text-xs font-bold tracking-loose text-text-soft uppercase whitespace-nowrap"
-                      >
-                        {header.isPlaceholder ? null : bisaUrut ? (
-                          <button
-                            type="button"
-                            onClick={header.column.getToggleSortingHandler()}
-                            className="inline-flex items-center gap-1 font-semibold uppercase tracking-loose hover:text-text"
-                          >
+          {/* One card per row, below `md`. The first cell is the heading; the rest are a
+              definition list, the action column's row included. */}
+          <div className="divide-y divide-neutral-soft md:hidden">
+            {table.getRowModel().rows.map((row) => {
+              const sel = row.getVisibleCells()
+              // Every cell renders: the first is the card's heading, the rest are labelled
+              // fields — the action column included, under its "AKSI" header.
+              const judul = sel.at(0)
+              const bidang = sel.slice(1)
+              return (
+                <div key={row.id} className="flex flex-col gap-3 p-4">
+                  {judul ? (
+                    <div className="min-w-0 text-sm wrap-anywhere">
+                      {flexRender(
+                        judul.column.columnDef.cell,
+                        judul.getContext(),
+                      )}
+                    </div>
+                  ) : null}
+
+                  {/* Each field is a labelled row in a fixed label column rather than a
+                      label at one edge and a value at the other: the values then line up
+                      down the card, and the hairline between rows is what stops a
+                      two-line value reading as part of the field below it. */}
+                  {bidang.length > 0 ? (
+                    <dl className="flex flex-col divide-y divide-neutral-soft/70">
+                      {bidang.map((cell) => (
+                        <div
+                          key={cell.id}
+                          className="grid grid-cols-[8rem_1fr] items-baseline gap-x-3 py-2.5 first:pt-0 last:pb-0"
+                        >
+                          <dt className="text-xs font-semibold tracking-loose wrap-anywhere text-text-soft uppercase">
+                            {cell.column.columnDef.header as string}
+                          </dt>
+                          <dd className="min-w-0 text-sm wrap-anywhere">
                             {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* The table proper, `md` and up. */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                {table.getHeaderGroups().map((grup) => (
+                  <tr key={grup.id} className="border-b border-neutral-soft">
+                    {grup.headers.map((header) => {
+                      const bisaUrut = header.column.getCanSort()
+                      const arah = header.column.getIsSorted()
+                      return (
+                        <th
+                          key={header.id}
+                          aria-sort={
+                            arah === 'desc'
+                              ? 'descending'
+                              : arah === 'asc'
+                                ? 'ascending'
+                                : 'none'
+                          }
+                          className="bg-neutral-subtle px-4 py-3 text-left text-xs font-bold tracking-loose text-text-soft uppercase whitespace-nowrap"
+                        >
+                          {header.isPlaceholder ? null : bisaUrut ? (
+                            <button
+                              type="button"
+                              onClick={header.column.getToggleSortingHandler()}
+                              className="inline-flex items-center gap-1 font-semibold uppercase tracking-loose hover:text-text"
+                            >
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                              <span
+                                aria-hidden="true"
+                                className={
+                                  arah ? 'text-accent' : 'text-text-disabled'
+                                }
+                              >
+                                {arah === 'desc'
+                                  ? '▼'
+                                  : arah === 'asc'
+                                    ? '▲'
+                                    : '↕'}
+                              </span>
+                            </button>
+                          ) : (
+                            flexRender(
                               header.column.columnDef.header,
                               header.getContext(),
-                            )}
-                            <span
-                              aria-hidden="true"
-                              className={
-                                arah ? 'text-accent' : 'text-text-disabled'
-                              }
-                            >
-                              {arah === 'desc'
-                                ? '▼'
-                                : arah === 'asc'
-                                  ? '▲'
-                                  : '↕'}
-                            </span>
-                          </button>
-                        ) : (
-                          flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )
+                            )
+                          )}
+                        </th>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </thead>
+              <tbody>
+                {table.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className="border-b border-neutral-soft/60 last:border-0 hover:bg-surface-container/50"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className={SEL_TABEL}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
                         )}
-                      </th>
-                    )
-                  })}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-b border-neutral-soft/60 last:border-0 hover:bg-surface-container/50"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className={SEL_TABEL}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {data.length > 0 && total > 0 ? (
         <div className="flex flex-col gap-3 border-t border-neutral-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <p className="text-xs text-text-soft">
               Menampilkan {total} dari {totalSemua} data
             </p>
             <label className="flex items-center gap-2 text-xs text-text-soft">
-              Baris per halaman
+              {/* Below `sm` the label is dropped and the select is pushed to the far right
+                  of the row, so the count reads on the left and the page size on the right;
+                  the select keeps the name for assistive tech. */}
+              <span className="hidden sm:inline">Baris per halaman</span>
               <select
+                aria-label="Baris per halaman"
                 className={PILIH}
                 value={perHalaman}
                 onChange={(e) => onPerHalaman(Number(e.target.value))}

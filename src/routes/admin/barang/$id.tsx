@@ -232,6 +232,7 @@ function FormBarang() {
               gambarTersimpan={
                 barang.fotoPath ? `/api/foto/${barang.id}` : null
               }
+              kamera
             />
           </Field>
         ) : null}

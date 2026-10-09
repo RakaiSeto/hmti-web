@@ -122,7 +122,7 @@ function Kategori() {
     },
     {
       id: 'aksi',
-      header: '',
+      header: 'AKSI',
       enableSorting: false,
       cell: ({ row }) => {
         const k = row.original

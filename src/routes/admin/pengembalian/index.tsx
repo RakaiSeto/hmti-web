@@ -125,7 +125,7 @@ function RiwayatPengembalian() {
     },
     {
       id: 'aksi',
-      header: '',
+      header: 'AKSI',
       enableSorting: false,
       cell: ({ row }) => (
         <TombolAksi
@@ -179,7 +179,7 @@ function RiwayatPengembalian() {
             <input
               type="date"
               aria-label="Dari tanggal"
-              className={inputCls}
+              className={`${inputCls} max-sm:w-[calc(50%-0.25rem)]`}
               value={params.dari}
               onChange={(e) =>
                 muat({ ...params, dari: e.target.value, halaman: 1 })
@@ -188,7 +188,7 @@ function RiwayatPengembalian() {
             <input
               type="date"
               aria-label="Sampai tanggal"
-              className={inputCls}
+              className={`${inputCls} max-sm:w-[calc(50%-0.25rem)]`}
               value={params.sampai}
               onChange={(e) =>
                 muat({ ...params, sampai: e.target.value, halaman: 1 })

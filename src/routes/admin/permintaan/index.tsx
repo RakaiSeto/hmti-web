@@ -122,7 +122,7 @@ function Permintaan() {
     },
     {
       id: 'aksi',
-      header: '',
+      header: 'AKSI',
       enableSorting: false,
       cell: ({ row }) => (
         <TombolAksi
@@ -178,7 +178,10 @@ function Permintaan() {
         }}
         toolbar={
           <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap gap-2">
+            {/* Eight statuses never fit one line on a phone. Below `sm` the row scrolls
+                sideways rather than wrapping to three lines, so the toolbar keeps its
+                height and the pills stay a single swipeable strip. */}
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 max-sm:flex-nowrap sm:flex-wrap">
               {tab.map((t) => (
                 <button
                   key={t.value}
@@ -186,7 +189,7 @@ function Permintaan() {
                   onClick={() =>
                     muat({ ...params, status: t.value, halaman: 1 })
                   }
-                  className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                  className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
                     params.status === t.value
                       ? 'border-accent bg-accent text-white'
                       : 'border-neutral-soft bg-surface text-text-soft hover:text-text'
@@ -207,7 +210,7 @@ function Permintaan() {
               <input
                 type="date"
                 aria-label="Dari tanggal"
-                className={inputCls}
+                className={`${inputCls} max-sm:w-[calc(50%-0.25rem)]`}
                 value={params.dari}
                 onChange={(e) =>
                   muat({ ...params, dari: e.target.value, halaman: 1 })
@@ -216,7 +219,7 @@ function Permintaan() {
               <input
                 type="date"
                 aria-label="Sampai tanggal"
-                className={inputCls}
+                className={`${inputCls} max-sm:w-[calc(50%-0.25rem)]`}
                 value={params.sampai}
                 onChange={(e) =>
                   muat({ ...params, sampai: e.target.value, halaman: 1 })

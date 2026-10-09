@@ -119,7 +119,7 @@ function DaftarBarang() {
     },
     {
       id: 'aksi',
-      header: '',
+      header: 'AKSI',
       enableSorting: false,
       cell: ({ row }) =>
         admin ? (

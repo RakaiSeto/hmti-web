@@ -340,7 +340,7 @@ function Laporan() {
                   <input
                     type="date"
                     aria-label="Dari tanggal"
-                    className={inputCls}
+                    className={`${inputCls} max-sm:w-[calc(50%-0.25rem)]`}
                     value={riwayat.params.dari}
                     onChange={(e) =>
                       riwayat.muat({
@@ -353,7 +353,7 @@ function Laporan() {
                   <input
                     type="date"
                     aria-label="Sampai tanggal"
-                    className={inputCls}
+                    className={`${inputCls} max-sm:w-[calc(50%-0.25rem)]`}
                     value={riwayat.params.sampai}
                     onChange={(e) =>
                       riwayat.muat({

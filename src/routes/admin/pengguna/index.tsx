@@ -162,7 +162,7 @@ function Pengguna() {
     },
     {
       id: 'aksi',
-      header: '',
+      header: 'AKSI',
       enableSorting: false,
       cell: ({ row }) => {
         const u = row.original

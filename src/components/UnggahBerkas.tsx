@@ -18,10 +18,10 @@
  * labelled control. The input is visually hidden but focusable, so the zone draws the focus
  * ring with `focus-within`.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { cocokTerima, ukuranBerkas } from '../domain/unggahan'
-import { IconUnggah } from './Icons'
+import { IconCamera, IconUnggah } from './Icons'
 
 export interface UnggahBerkasProps {
   /** The input's `accept` list, e.g. `image/jpeg,image/png`. Enforced on drop too. */
@@ -39,6 +39,12 @@ export interface UnggahBerkasProps {
    * stored file is described elsewhere on the page, as a letter's is.
    */
   gambarTersimpan?: string | null
+  /**
+   * Offer a second, camera-only affordance next to the picker. Only for image-only fields:
+   * a field that also takes a PDF would lose the file manager to the camera on a phone.
+   * The zone itself still opens the file manager, so a stored photo can be chosen too.
+   */
+  kamera?: boolean
 }
 
 /**
@@ -68,9 +74,11 @@ export function UnggahBerkas({
   onPilih,
   sibuk = false,
   gambarTersimpan = null,
+  kamera = false,
 }: UnggahBerkasProps) {
   const [diAtas, setDiAtas] = useState(false)
   const [galat, setGalat] = useState<string | null>(null)
+  const refKamera = useRef<HTMLInputElement>(null)
   const pratinjau = usePratinjau(file)
 
   function terima(berkas: File) {
@@ -80,6 +88,14 @@ export function UnggahBerkas({
     }
     setGalat(null)
     onPilih(berkas)
+  }
+
+  /** Both inputs — the picker and the camera — hand their file through here. */
+  function dariInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const dipilih = e.target.files?.[0]
+    if (dipilih) terima(dipilih)
+    // Cleared so picking the same file twice still fires a change.
+    e.target.value = ''
   }
 
   const zona = [
@@ -127,13 +143,20 @@ export function UnggahBerkas({
           accept={accept}
           disabled={sibuk}
           className="sr-only"
-          onChange={(e) => {
-            const dipilih = e.target.files?.[0]
-            if (dipilih) terima(dipilih)
-            // Cleared so picking the same file twice still fires a change.
-            e.target.value = ''
-          }}
+          onChange={dariInput}
         />
+        {kamera ? (
+          <input
+            ref={refKamera}
+            type="file"
+            accept={accept}
+            capture="environment"
+            disabled={sibuk}
+            aria-label="Ambil foto"
+            className="sr-only"
+            onChange={dariInput}
+          />
+        ) : null}
         <IconUnggah size={26} className="text-text-soft" />
         <p className="text-sm text-text-soft">
           <span className="font-semibold text-neutral-intense">
@@ -142,13 +165,28 @@ export function UnggahBerkas({
           {sibuk ? null : ' atau pilih dari perangkat.'}
         </p>
         <p className="text-sm text-text-soft">{petunjuk}</p>
-        {/* The zone itself is the control, so this is the design's button drawn as an
-            affordance rather than a second interactive element. */}
-        <span
-          aria-hidden="true"
-          className="mt-2 rounded-md border border-neutral-soft bg-surface px-3 py-1.5 text-sm font-semibold text-neutral-intense"
-        >
-          Pilih berkas
+        {/* The zone itself is the control, so "Pilih berkas" is the design's button drawn
+            as an affordance rather than a second interactive element. "Ambil foto" is a
+            real button on purpose: a nested interactive element does not trigger the
+            label, so it opens the camera input without also opening the file manager. */}
+        <span className="mt-2 flex flex-wrap items-center justify-center gap-2">
+          <span
+            aria-hidden="true"
+            className="rounded-md border border-neutral-soft bg-surface px-3 py-1.5 text-sm font-semibold text-neutral-intense"
+          >
+            Pilih berkas
+          </span>
+          {kamera ? (
+            <button
+              type="button"
+              disabled={sibuk}
+              onClick={() => refKamera.current?.click()}
+              className="inline-flex items-center gap-1.5 rounded-md border border-neutral-soft bg-surface px-3 py-1.5 text-sm font-semibold text-neutral-intense disabled:opacity-60"
+            >
+              <IconCamera size={16} />
+              Ambil foto
+            </button>
+          ) : null}
         </span>
       </div>
 
